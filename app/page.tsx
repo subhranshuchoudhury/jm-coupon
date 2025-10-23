@@ -8,15 +8,23 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronRight,
-  Sparkles, // Added for demo notification
-  Coffee, // Added for demo notification
-  ArrowLeft, // For Redeem page
-  Ticket, // For Redeem page
-  Car, // For Redeem page
-  Percent, // For Redeem page
-  X, // For modal close button
+  Sparkles,
+  Coffee,
+  ArrowLeft,
+  Ticket,
+  Car,
+  Percent,
+  X,
+  User,
+  LogOut,
+  RefreshCw,
+  // --- New Icons for Status ---
+  AlertCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
-// Import for QR Scanner removed as it was causing an error
+// --- New Import for QR Scanner ---
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 // --- MOCK DATA ---
 
@@ -35,6 +43,34 @@ const mockRedeemHistory = [
   { id: 7, type: 'redeem', title: 'Free Car Wash', points: -750, date: 'Oct 10' },
 ];
 
+// --- New Mock Data for Redeem Requests ---
+const mockRedeemRequests: RedeemRequest[] = [
+  {
+    id: 'req1',
+    title: '₹100 Voucher',
+    points: 10000,
+    date: 'Oct 20',
+    status: 'Accepted',
+    message: 'Voucher code: JYESHTHA-100',
+  },
+  {
+    id: 'req2',
+    title: 'Free Car Wash',
+    points: 7500,
+    date: 'Oct 18',
+    status: 'Rejected',
+    message: 'Duplicate request. Please contact support.',
+  },
+  {
+    id: 'req3',
+    title: '₹50 Voucher',
+    points: 5000,
+    date: 'Oct 17',
+    status: 'Pending',
+    message: 'Your request is being processed.',
+  },
+];
+
 const mockRewards = [
   { id: 'r1', title: '₹50 Voucher', points: 5000, icon: Ticket },
   { id: 'r2', title: 'Free Car Wash', points: 7500, icon: Car },
@@ -42,8 +78,18 @@ const mockRewards = [
   { id: 'r4', title: '20% Off Service', points: 15000, icon: Percent },
 ];
 
+// --- TYPE DEFINITIONS ---
 type Transaction = (typeof mockTransactions)[0];
 type Reward = (typeof mockRewards)[0];
+// --- New Type for Redeem Request ---
+type RedeemRequest = {
+  id: string | number;
+  title: string;
+  points: number;
+  date: string;
+  status: 'Pending' | 'Accepted' | 'Rejected';
+  message?: string;
+};
 
 // --- MAIN APP COMPONENT ---
 
@@ -59,6 +105,9 @@ function App() {
   const [upiId, setUpiId] = useState('');
   const [fullName, setFullName] = useState('');
 
+  // --- New state for redeem requests ---
+  const [redeemRequests, setRedeemRequests] = useState<RedeemRequest[]>(mockRedeemRequests);
+
   // Helper function to show the global alert modal
   const showAlert = (message: string) => {
     setAlertMessage(message);
@@ -70,14 +119,16 @@ function App() {
   // 1. When a reward is clicked in the modal
   const handleRedeemClick = (reward: Reward) => {
     setSelectedReward(reward);
-    (document.getElementById('redeem_confirm_modal') as HTMLDialogElement)?.showModal();
+    (
+      document.getElementById('redeem_confirm_modal') as HTMLDialogElement
+    )?.showModal();
   };
 
   // 2. When user confirms in the confirmation modal
   const handleRedemptionConfirm = () => {
     if (!selectedReward) return;
 
-    // --- New Validation ---
+    // --- Validation ---
     if (!upiId.trim()) {
       showAlert('UPI ID is mandatory. Please enter a valid UPI ID.');
       return; // Stop execution, keep modal open
@@ -86,6 +137,21 @@ function App() {
 
     if (totalPoints >= selectedReward.points) {
       setTotalPoints((prevPoints) => prevPoints - selectedReward.points);
+
+      // --- Create a new redeem request ---
+      const newRequest: RedeemRequest = {
+        id: Date.now(),
+        title: selectedReward.title,
+        points: selectedReward.points,
+        date: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        status: 'Pending',
+        message: 'Your request is being processed.',
+      };
+      setRedeemRequests((prevRequests) => [newRequest, ...prevRequests]);
+      // --- End new request logic ---
 
       // Log the data (simulation of sending to backend)
       console.log('Redemption Confirmed:', {
@@ -96,8 +162,12 @@ function App() {
       });
 
       // --- Manually close modals on success ---
-      (document.getElementById('redeem_confirm_modal') as HTMLDialogElement)?.close();
-      (document.getElementById('redeem_page_modal') as HTMLDialogElement)?.close();
+      (
+        document.getElementById('redeem_confirm_modal') as HTMLDialogElement
+      )?.close();
+      (
+        document.getElementById('redeem_page_modal') as HTMLDialogElement
+      )?.close();
 
       showAlert(`Successfully redeemed "${selectedReward.title}"!`);
 
@@ -105,7 +175,6 @@ function App() {
       setSelectedReward(null);
       setUpiId('');
       setFullName('');
-
     } else {
       showAlert('Not enough points to redeem this reward.');
       // Don't close modal, let user see the error
@@ -122,9 +191,10 @@ function App() {
 
   // --- Modal Opening ---
   const openRedeemModal = () => {
-    (document.getElementById('redeem_page_modal') as HTMLDialogElement)?.showModal();
+    (
+      document.getElementById('redeem_page_modal') as HTMLDialogElement
+    )?.showModal();
   };
-
 
   return (
     <div className="flex flex-col min-h-screen bg-base-200">
@@ -132,38 +202,43 @@ function App() {
         totalPoints={totalPoints}
         transactions={mockTransactions}
         redeemHistory={mockRedeemHistory}
-        onRedeemClick={openRedeemModal} // Pass function to open modal
+        redeemRequests={redeemRequests} // Pass new state
+        onRedeemClick={openRedeemModal}
         showAlert={showAlert}
       />
 
       {/* --- GLOBAL MODALS --- */}
 
-      {/* Notification Modal (remains from HomePage) */}
+      {/* Notification Modal */}
       <dialog id="notification_modal" className="modal">
-        {/* ... (modal content unchanged) ... */}
         <div className="modal-box">
           <h3 className="font-bold text-lg">Notifications</h3>
           <div className="py-4 space-y-4">
-            {/* Demo Notifications */}
             <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
               <Sparkles size={20} className="text-info mt-1 shrink-0" />
               <div>
                 <p className="font-semibold">Welcome Bonus!</p>
-                <p className="text-sm text-base-content/80">You've received 100 bonus points for joining.</p>
+                <p className="text-sm text-base-content/80">
+                  You've received 100 bonus points for joining.
+                </p>
               </div>
             </div>
             <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
               <Coffee size={20} className="text-success mt-1 shrink-0" />
               <div>
                 <p className="font-semibold">Redemption Successful</p>
-                <p className="text-sm text-base-content/80">Your 'Free Coffee' reward has been redeemed.</p>
+                <p className="text-sm text-base-content/80">
+                  Your 'Free Coffee' reward has been redeemed.
+                </p>
               </div>
             </div>
             <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
               <Gift size={20} className="text-accent mt-1 shrink-0" />
               <div>
                 <p className="font-semibold">New Reward Available</p>
-                <p className="text-sm text-base-content/80">Complete your profile to earn 50 extra points!</p>
+                <p className="text-sm text-base-content/80">
+                  Complete your profile to earn 50 extra points!
+                </p>
               </div>
             </div>
           </div>
@@ -178,9 +253,8 @@ function App() {
         </form>
       </dialog>
 
-      {/* Global Alert Modal (replaces window.alert) */}
+      {/* Global Alert Modal */}
       <dialog id="alert_modal" className="modal">
-        {/* ... (modal content unchanged) ... */}
         <div className="modal-box">
           <h3 className="font-bold text-lg">Alert</h3>
           <p className="py-4">{alertMessage}</p>
@@ -195,9 +269,53 @@ function App() {
         </form>
       </dialog>
 
-      {/* Redeem Page Modal (Replaces RedeemPage) */}
+      {/* Profile Modal */}
+      <dialog id="profile_modal" className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg">Profile</h3>
+
+          {/* Profile content */}
+          <div className="flex flex-col items-center py-6">
+            <div className="avatar placeholder mb-4">
+              <div className="bg-neutral text-neutral-content rounded-full w-24">
+                <User size={48} />
+              </div>
+            </div>
+            <p className="text-xl font-semibold">Jyeshtha User</p>
+            <p className="text-base-content/70">user@jyeshtha-motors.com</p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-2">
+            <button
+              className="btn btn-outline w-full"
+              onClick={() => showAlert('Refreshing data... (Simulation)')}
+            >
+              <RefreshCw size={18} className="mr-2" />
+              Refresh Data
+            </button>
+            <button
+              className="btn btn-outline btn-error w-full"
+              onClick={() => showAlert('Logging out... (Simulation)')}
+            >
+              <LogOut size={18} className="mr-2" />
+              Logout
+            </button>
+          </div>
+
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn">Close</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      {/* Redeem Page Modal */}
       <dialog id="redeem_page_modal" className="modal">
-        {/* ... (modal content mostly unchanged) ... */}
         <div className="modal-box max-w-md w-full p-0">
           {/* Modal Header with Close Button */}
           <div className="flex justify-between items-center p-4 border-b border-base-300">
@@ -276,7 +394,10 @@ function App() {
           <div className="modal-action">
             {/* This form is ONLY for the cancel button */}
             <form method="dialog">
-              <button className="btn btn-ghost mr-2" onClick={handleRedemptionCancel}>
+              <button
+                className="btn btn-ghost mr-2"
+                onClick={handleRedemptionCancel}
+              >
                 Cancel
               </button>
             </form>
@@ -303,6 +424,7 @@ type HomePageProps = {
   totalPoints: number;
   transactions: Transaction[];
   redeemHistory: Transaction[];
+  redeemRequests: RedeemRequest[]; // Added prop
   onRedeemClick: () => void;
   showAlert: (message: string) => void;
 };
@@ -311,11 +433,14 @@ function HomePage({
   totalPoints,
   transactions,
   redeemHistory,
+  redeemRequests, // Destructure prop
   onRedeemClick,
   showAlert,
 }: HomePageProps) {
   const [manualCode, setManualCode] = useState('');
   const [activeTab, setActiveTab] = useState('recent');
+  // --- New state for custom scanner modal ---
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const handleManualCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,7 +451,16 @@ function HomePage({
   };
 
   const handleScanClick = () => {
-    showAlert('Opening scanner... (Simulation)');
+    // --- Open custom modal instead of alert ---
+    setIsScannerOpen(true);
+  };
+
+  // --- New handler for scan result ---
+  const handleScanResult = (result: string) => {
+    setIsScannerOpen(false);
+    showAlert(`Scanned Code: ${result}`);
+    // Here you would typically also submit this code, e.g.:
+    // console.log('Submitting scanned code:', result);
   };
 
   return (
@@ -339,12 +473,26 @@ function HomePage({
         <div className="flex-none">
           <button
             className="btn btn-ghost btn-circle"
-            onClick={() => (document.getElementById('notification_modal') as HTMLDialogElement)?.showModal()}
+            onClick={() =>
+              (
+                document.getElementById('notification_modal') as HTMLDialogElement
+              )?.showModal()
+            }
           >
             <div className="indicator">
               <Bell size={20} />
               <span className="badge badge-xs badge-primary indicator-item"></span>
             </div>
+          </button>
+          <button
+            className="btn btn-ghost btn-circle"
+            onClick={() =>
+              (
+                document.getElementById('profile_modal') as HTMLDialogElement
+              )?.showModal()
+            }
+          >
+            <User size={20} />
           </button>
         </div>
       </div>
@@ -402,7 +550,7 @@ function HomePage({
           <div className="text-center my-6 grow">
             <button
               className="btn btn-accent btn-lg h-40 w-40 rounded-full shadow-lg flex-col gap-2"
-              onClick={handleScanClick}
+              onClick={handleScanClick} // Updated
             >
               <QrCode size={48} />
               <span className="text-lg">Scan Code</span>
@@ -411,22 +559,35 @@ function HomePage({
 
           {/* Activity Tabs Section */}
           <div className="mt-4">
+            {/* --- Updated Tab List --- */}
             <div role="tablist" className="tabs tabs-boxed mb-3 bg-base-100/50">
               <a
                 role="tab"
-                className={`tab ${activeTab === 'recent' ? 'tab-active font-semibold' : ''}`}
+                className={`tab ${activeTab === 'recent' ? 'tab-active font-semibold' : ''
+                  }`}
                 onClick={() => setActiveTab('recent')}
               >
-                Recent Activity
+                My Activity
               </a>
               <a
                 role="tab"
-                className={`tab ${activeTab === 'redeem' ? 'tab-active font-semibold' : ''}`}
+                className={`tab ${activeTab === 'redeem' ? 'tab-active font-semibold' : ''
+                  }`}
                 onClick={() => setActiveTab('redeem')}
               >
-                Redeem History
+                My History
+              </a>
+              {/* --- New Tab --- */}
+              <a
+                role="tab"
+                className={`tab ${activeTab === 'requests' ? 'tab-active font-semibold' : ''
+                  }`}
+                onClick={() => setActiveTab('requests')}
+              >
+                Redeem Requests
               </a>
             </div>
+
             <div className="bg-base-100 rounded-box shadow-md overflow-hidden">
               {activeTab === 'recent' && (
                 <ul className="divide-y divide-base-200">
@@ -448,10 +609,32 @@ function HomePage({
                   )}
                 </ul>
               )}
+              {/* --- New Tab Panel --- */}
+              {activeTab === 'requests' && (
+                <ul className="divide-y divide-base-200">
+                  {redeemRequests.length > 0 ? (
+                    redeemRequests.map((req) => (
+                      <RedeemRequestItem key={req.id} request={req} />
+                    ))
+                  ) : (
+                    <li className="p-6 text-center text-base-content/70">
+                      You have no redemption requests.
+                    </li>
+                  )}
+                </ul>
+              )}
             </div>
           </div>
         </div>
       </main>
+
+      {/* --- NEW QR SCANNER MODAL --- */}
+      {isScannerOpen && (
+        <QRScannerModal
+          onClose={() => setIsScannerOpen(false)}
+          onScan={handleScanResult}
+        />
+      )}
     </>
   );
 }
@@ -544,7 +727,10 @@ function TransactionItem({ transaction }: { transaction: Transaction }) {
   return (
     <li className="flex items-center justify-between p-4 hover:bg-base-200 transition-colors">
       <div className="flex items-center">
-        <div className={`mr-3 p-2 rounded-full ${isEarn ? 'bg-success/10' : 'bg-error/10'}`}>
+        <div
+          className={`mr-3 p-2 rounded-full ${isEarn ? 'bg-success/10' : 'bg-error/10'
+            }`}
+        >
           <Icon size={20} className={isEarn ? 'text-success' : 'text-error'} />
         </div>
         <div>
@@ -563,5 +749,131 @@ function TransactionItem({ transaction }: { transaction: Transaction }) {
   );
 }
 
-export default App; // Renamed default export
+// --- NEW REDEEM REQUEST ITEM COMPONENT ---
 
+function RedeemRequestItem({ request }: { request: RedeemRequest }) {
+  let StatusIcon: React.ElementType;
+  let statusColorClass: string;
+
+  switch (request.status) {
+    case 'Accepted':
+      StatusIcon = CheckCircle;
+      statusColorClass = 'badge-success';
+      break;
+    case 'Rejected':
+      StatusIcon = XCircle;
+      statusColorClass = 'badge-error';
+      break;
+    case 'Pending':
+    default:
+      StatusIcon = AlertCircle;
+      statusColorClass = 'badge-warning';
+      break;
+  }
+
+  return (
+    <li className="p-4 hover:bg-base-200 transition-colors">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
+          <div className="mr-3 p-2 rounded-full bg-primary/10">
+            <Gift size={20} className="text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-base-content">{request.title}</p>
+            <p className="text-sm text-base-content/70">{request.date}</p>
+          </div>
+        </div>
+        <div className="flex items-center">
+          <span className="font-bold mr-2 text-error">
+            -{request.points.toLocaleString()}
+          </span>
+          <ChevronRight size={18} className="text-base-content/30" />
+        </div>
+      </div>
+      <div className="pl-12">
+        <div className={`badge ${statusColorClass} gap-1.5`}>
+          <StatusIcon size={14} />
+          {request.status}
+        </div>
+        {request.message && (
+          <p className="text-sm text-base-content/80 mt-1.5">
+            {request.message}
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+// --- NEW QR SCANNER MODAL COMPONENT ---
+
+type QRScannerModalProps = {
+  onClose: () => void;
+  onScan: (result: string) => void;
+};
+
+function QRScannerModal({ onClose, onScan }: QRScannerModalProps) {
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  const handleScan = (result: any) => {
+    // The library returns an array of results
+    if (result && result.length > 0) {
+      onScan(result[0].rawValue);
+    }
+  };
+
+  const handleError = (err: unknown) => {
+    console.error('QR Scan Error:', err);
+    setScanError('An unknown error occurred.');
+  };
+
+  return (
+    // Backdrop
+    <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+      {/* Scanner Viewport */}
+      <div className="relative w-full max-w-md bg-neutral rounded-box shadow-2xl overflow-hidden aspect-square">
+        <Scanner
+          onScan={handleScan}
+          onError={handleError}
+          constraints={{
+            facingMode: 'environment', // Use rear camera
+          }}
+          styles={{
+            container: {
+              width: '100%',
+              height: '100%',
+              paddingTop: '0', // Override default
+            },
+            video: {
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            },
+          }}
+        />
+        {/* Scanning Box Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center p-8">
+          <div className="w-full h-full border-4 border-white/50 rounded-lg shadow-inner-lg" />
+        </div>
+      </div>
+
+      {/* Close Button */}
+      <button
+        className="btn btn-circle btn-ghost text-white mt-6"
+        onClick={onClose}
+      >
+        <X size={32} />
+      </button>
+
+      {/* Error Message */}
+      {scanError && (
+        <div className="text-center text-error bg-error/20 p-3 rounded-md mt-4 max-w-md">
+          <p className="font-semibold">Could not start scanner</p>
+          <p className="text-sm">{scanError}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App; // Renamed default export
