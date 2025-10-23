@@ -11,6 +11,7 @@ interface Profile {
     email: string;
     name: string;
     avatar: string;
+    total_points: number;
     role: string;
     created: string;
     updated: string;
@@ -48,6 +49,7 @@ const useProfileStore = create<ProfileState>(
                         email: profileData.email || '',
                         name: profileData.name || '',
                         avatar: profileData.avatar || '',
+                        total_points: profileData.total_points || 0,
                         role: profileData.role || '',
                         created: profileData.created || new Date().toISOString(),
                         updated: new Date().toISOString(),

@@ -1,6 +1,6 @@
 "use client"; // Assuming Next.js App Router
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bell,
   Gift,
@@ -9,22 +9,23 @@ import {
   TrendingDown,
   ChevronRight,
   Sparkles,
-  Coffee,
-  ArrowLeft,
-  Ticket,
+  Coffee, Ticket,
   Car,
   Percent,
   X,
   User,
   LogOut,
-  RefreshCw,
   // --- New Icons for Status ---
   AlertCircle,
   CheckCircle,
-  XCircle,
+  XCircle
 } from 'lucide-react';
 // --- New Import for QR Scanner ---
 import { Scanner } from '@yudiel/react-qr-scanner';
+import pb from '@/lib/pocketbase';
+import { deleteCookie } from 'cookies-next';
+import { useRouter } from 'next/navigation';
+import useProfileStore from '@/stores/profile.store';
 
 // --- MOCK DATA ---
 
@@ -97,7 +98,12 @@ type RedeemRequest = {
  * Main App component that renders the home page and global modals
  */
 function App() {
-  const [totalPoints, setTotalPoints] = useState(12450);
+
+  const router = useRouter();
+
+  const { profile } = useProfileStore();
+
+  const [totalPoints, setTotalPoints] = useState(profile?.total_points || 0);
   const [alertMessage, setAlertMessage] = useState('');
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
@@ -278,25 +284,29 @@ function App() {
           <div className="flex flex-col items-center py-6">
             <div className="avatar placeholder mb-4">
               <div className="bg-neutral text-neutral-content rounded-full w-24">
-                <User size={48} />
+                {/* <User size={48} /> */}
               </div>
             </div>
-            <p className="text-xl font-semibold">Jyeshtha User</p>
-            <p className="text-base-content/70">user@jyeshtha-motors.com</p>
+            <p className="text-xl font-semibold">{profile?.name}</p>
+            <p className="text-base-content/70">{profile?.email}</p>
           </div>
 
           {/* Action Buttons */}
           <div className="space-y-2">
-            <button
+            {/* <button
               className="btn btn-outline w-full"
               onClick={() => showAlert('Refreshing data... (Simulation)')}
             >
               <RefreshCw size={18} className="mr-2" />
               Refresh Data
-            </button>
+            </button> */}
             <button
               className="btn btn-outline btn-error w-full"
-              onClick={() => showAlert('Logging out... (Simulation)')}
+              onClick={() => {
+                pb.authStore.clear();
+                deleteCookie('pb_auth');
+                router.refresh();
+              }}
             >
               <LogOut size={18} className="mr-2" />
               Logout
@@ -329,7 +339,6 @@ function App() {
 
           {/* Modal Content */}
           <RedeemModalContent
-            totalPoints={totalPoints}
             rewards={mockRewards}
             onRedeemClick={handleRedeemClick}
           />
@@ -430,13 +439,15 @@ type HomePageProps = {
 };
 
 function HomePage({
-  totalPoints,
   transactions,
   redeemHistory,
   redeemRequests, // Destructure prop
   onRedeemClick,
   showAlert,
 }: HomePageProps) {
+
+  const { profile, updateProfile } = useProfileStore();
+
   const [manualCode, setManualCode] = useState('');
   const [activeTab, setActiveTab] = useState('recent');
   // --- New state for custom scanner modal ---
@@ -462,6 +473,27 @@ function HomePage({
     // Here you would typically also submit this code, e.g.:
     // console.log('Submitting scanned code:', result);
   };
+
+  // Run API in each 5 seconds to fetch new notifications
+  useEffect(() => {
+    if (!profile?.uid) return;
+
+    const interval = setInterval(() => {
+      async function refreshProfile() {
+        try {
+          const { record } = await pb.collection('users').authRefresh();
+          updateProfile({
+            total_points: record.total_points || 0,
+          })
+        } catch (error) {
+          console.error('Error refreshing profile:', error);
+        }
+      }
+      refreshProfile();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [profile?.uid]);
+
 
   return (
     <>
@@ -507,7 +539,7 @@ function HomePage({
                 <div>
                   <h2 className="card-title opacity-80">Total Points</h2>
                   <p className="text-4xl font-bold">
-                    {totalPoints.toLocaleString()}
+                    {profile?.total_points.toLocaleString()}
                   </p>
                 </div>
                 <button
@@ -642,17 +674,18 @@ function HomePage({
 // --- REDEEM MODAL CONTENT COMPONENT ---
 
 type RedeemModalProps = {
-  totalPoints: number;
   rewards: Reward[];
   onRedeemClick: (reward: Reward) => void;
 };
 
 function RedeemModalContent({
-  totalPoints,
   rewards,
   onRedeemClick,
 }: RedeemModalProps) {
-  const redeemableValue = (totalPoints / 100).toFixed(2); // 100 points = ₹1
+
+  const { profile, setProfile } = useProfileStore();
+
+  const redeemableValue = (profile?.total_points! / 100).toFixed(2); // 100 points = ₹1
 
   return (
     <>
@@ -665,7 +698,7 @@ function RedeemModalContent({
               <h2 className="card-title opacity-80">Your Points are worth</h2>
               <p className="text-4xl font-bold">₹{redeemableValue}</p>
               <p className="opacity-90 text-sm">
-                {totalPoints.toLocaleString()} Points Available
+                {profile?.total_points?.toLocaleString()} Points Available
               </p>
             </div>
           </div>
@@ -676,7 +709,7 @@ function RedeemModalContent({
           </h3>
           <div className="grid grid-cols-1 gap-4">
             {rewards.map((reward) => {
-              const canAfford = totalPoints >= reward.points;
+              const canAfford = profile?.total_points! >= reward.points;
               const Icon = reward.icon;
               return (
                 <div
