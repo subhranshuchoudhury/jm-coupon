@@ -23,9 +23,10 @@ import {
 // --- New Import for QR Scanner ---
 import { Scanner } from '@yudiel/react-qr-scanner';
 import pb from '@/lib/pocketbase';
-import { deleteCookie } from 'cookies-next';
+import { deleteCookie, setCookie } from 'cookies-next';
 import { useRouter } from 'next/navigation';
 import useProfileStore from '@/stores/profile.store';
+import { useQuery } from '@tanstack/react-query';
 
 // --- MOCK DATA ---
 
@@ -474,25 +475,38 @@ function HomePage({
     // console.log('Submitting scanned code:', result);
   };
 
-  // Run API in each 5 seconds to fetch new notifications
-  useEffect(() => {
-    if (!profile?.uid) return;
+  const fetchProfileRefresh = async () => {
+    const { record, token } = await pb.collection('users').authRefresh();
 
-    const interval = setInterval(() => {
-      async function refreshProfile() {
-        try {
-          const { record } = await pb.collection('users').authRefresh();
-          updateProfile({
-            total_points: record.total_points || 0,
-          })
-        } catch (error) {
-          console.error('Error refreshing profile:', error);
-        }
-      }
-      refreshProfile();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [profile?.uid]);
+    await setCookie("pb_auth", token, {
+      maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
+    });
+
+    return {
+      total_points: record.total_points || 0,
+      email: record.email,
+      name: record.name,
+      uid: record.id,
+      role: record.role,
+    };
+  };
+
+  // --- Periodic Profile Refresh ---
+  useQuery({
+    queryKey: ['userProfile', profile?.uid],
+    queryFn: fetchProfileRefresh,
+    refetchInterval: 5000,
+    enabled: !!profile?.uid,
+    onSuccess: (data) => {
+      updateProfile(data);
+    },
+    onError: (error) => {
+      console.error('Error refreshing profile:', error);
+    },
+    refetchOnWindowFocus: false,
+    retryDelay: 3000,
+    refetchOnReconnect: true
+  });
 
 
   return (
@@ -592,7 +606,7 @@ function HomePage({
           {/* Activity Tabs Section */}
           <div className="mt-4">
             {/* --- Updated Tab List --- */}
-            <div role="tablist" className="tabs tabs-boxed mb-3 bg-base-100/50">
+            <div role="tablist" className="tabs tabs-boxed mb-3 bg-base-100/50 justify-center">
               <a
                 role="tab"
                 className={`tab ${activeTab === 'recent' ? 'tab-active font-semibold' : ''

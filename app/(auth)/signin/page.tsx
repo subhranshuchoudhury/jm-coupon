@@ -50,7 +50,7 @@ export default function SignInForm() {
 
                 // Set the cookie using cookies-next
                 await setCookie("pb_auth", cookieString, {
-                    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+                    maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
                 });
 
                 router.refresh();
