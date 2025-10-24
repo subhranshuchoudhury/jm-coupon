@@ -136,7 +136,6 @@ export default function HomePage({
     useQuery({
         queryKey: ['userProfile', profile?.uid],
         queryFn: fetchProfileRefresh,
-        refetchInterval: 5000,
         enabled: !!profile?.uid,
         onSuccess: (data) => {
             updateProfile(data);
@@ -144,9 +143,10 @@ export default function HomePage({
         onError: (error) => {
             console.error('Error refreshing profile:', error);
         },
-        refetchOnWindowFocus: false,
-        retryDelay: 3000,
+        retryDelay: 5000,
+        refetchOnWindowFocus: true,
         refetchOnReconnect: true,
+        refetchInterval: 10000,
     });
 
     return (

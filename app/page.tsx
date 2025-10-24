@@ -4,10 +4,7 @@ import { useState } from 'react';
 import {
   Gift, Sparkles,
   Coffee,
-  Ticket,
-  Car,
-  Percent,
-  X, LogOut
+  Ticket, X, LogOut
 } from 'lucide-react';
 // --- New Import for QR Scanner ---
 import pb from '@/lib/pocketbase';
@@ -88,7 +85,7 @@ const fetchRedeemRequests = async (
   if (!userId) return [];
   // --- ASSUMING collection name is 'redeem_requests' ---
   const resultList = await pb
-    .collection('redemption_request')
+    .collection('redeem_requests')
     .getList(1, 5, {
       filter: `user = "${userId}"`,
       sort: '-created', // Show most recent first
@@ -140,6 +137,7 @@ function App() {
     queryFn: () => fetchTransactions(profile!.uid),
     enabled: !!profile?.uid, // Only run if profile.uid exists
     refetchInterval: 10000, // Refetch every 10 seconds
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // --- NEW: Fetch Redeem Requests ---
@@ -147,6 +145,8 @@ function App() {
     queryKey: ['redeemRequests', profile?.uid],
     queryFn: () => fetchRedeemRequests(profile!.uid),
     enabled: !!profile?.uid, // Only run if profile.uid exists
+    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // --- NEW: Mutation for creating a Redeem Request ---
