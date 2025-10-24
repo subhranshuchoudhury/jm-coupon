@@ -54,7 +54,7 @@ export default function HomePage({
     };
 
     // --- NEW: Setup the mutation ---
-    const { mutate: scanCodeMutate, isLoading: isScanning } = useMutation(
+    const { mutate: scanCodeMutate, isPending: isScanning } = useMutation(
         scanCodeApi,
         {
             onSuccess: (data) => {
