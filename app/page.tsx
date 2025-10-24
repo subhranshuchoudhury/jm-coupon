@@ -1,32 +1,30 @@
 "use client"; // Assuming Next.js App Router
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Bell,
   Gift,
-  QrCode,
-  TrendingUp,
-  TrendingDown,
-  ChevronRight,
-  Sparkles,
-  Coffee, Ticket,
+  QrCode, Sparkles,
+  Coffee,
+  Ticket,
   Car,
   Percent,
   X,
   User,
-  LogOut,
-  // --- New Icons for Status ---
-  AlertCircle,
-  CheckCircle,
-  XCircle
+  LogOut
 } from 'lucide-react';
 // --- New Import for QR Scanner ---
-import { Scanner } from '@yudiel/react-qr-scanner';
 import pb from '@/lib/pocketbase';
 import { deleteCookie, setCookie } from 'cookies-next';
 import { useRouter } from 'next/navigation';
 import useProfileStore from '@/stores/profile.store';
-import { useQuery } from '@tanstack/react-query';
+// --- MODIFIED IMPORT ---
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import QRScannerModal from './components/QRScannerModal';
+import RedeemModalContent from './components/RedeemModalContent';
+import TransactionItem from './components/tabs/TransactionItem';
+import { RedeemRequest } from './types';
+import RedeemRequestItem from './components/tabs/RedeemRequestItem';
 
 // --- MOCK DATA ---
 
@@ -84,14 +82,7 @@ const mockRewards = [
 type Transaction = (typeof mockTransactions)[0];
 type Reward = (typeof mockRewards)[0];
 // --- New Type for Redeem Request ---
-type RedeemRequest = {
-  id: string | number;
-  title: string;
-  points: number;
-  date: string;
-  status: 'Pending' | 'Accepted' | 'Rejected';
-  message?: string;
-};
+
 
 // --- MAIN APP COMPONENT ---
 
@@ -99,7 +90,6 @@ type RedeemRequest = {
  * Main App component that renders the home page and global modals
  */
 function App() {
-
   const router = useRouter();
 
   const { profile } = useProfileStore();
@@ -113,7 +103,8 @@ function App() {
   const [fullName, setFullName] = useState('');
 
   // --- New state for redeem requests ---
-  const [redeemRequests, setRedeemRequests] = useState<RedeemRequest[]>(mockRedeemRequests);
+  const [redeemRequests, setRedeemRequests] =
+    useState<RedeemRequest[]>(mockRedeemRequests);
 
   // Helper function to show the global alert modal
   const showAlert = (message: string) => {
@@ -446,7 +437,6 @@ function HomePage({
   onRedeemClick,
   showAlert,
 }: HomePageProps) {
-
   const { profile, updateProfile } = useProfileStore();
 
   const [manualCode, setManualCode] = useState('');
@@ -454,12 +444,61 @@ function HomePage({
   // --- New state for custom scanner modal ---
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
+  // --- NEW: Get Query Client ---
+  const queryClient = useQueryClient();
+
+  // --- NEW: Define the API call function ---
+  const scanCodeApi = async (code: string) => {
+    const response = await pb.send('/api/v1/scan', {
+      method: 'POST',
+      body: JSON.stringify({ code: code }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    // This function will either return response data on 2xx...
+    // or throw an error on 4xx/5xx (which useMutation's onError will catch)
+    return response;
+  };
+
+  // --- NEW: Setup the mutation ---
+  const { mutate: scanCodeMutate, isLoading: isScanning } = useMutation(
+    scanCodeApi,
+    {
+      onSuccess: (data) => {
+        // This is a true success (HTTP 2xx)
+        // 'data' is the response body
+        showAlert(data.message || 'Code submitted successfully!');
+        // Refetch the user's profile to update points
+        queryClient.invalidateQueries({
+          queryKey: ['userProfile', profile?.uid],
+        })
+      },
+      onError: (error: any) => {
+        // This is a network error or HTTP 4xx/5xx
+        console.error('Scan API Error:', error);
+
+        // The error object from pb.send has the JSON response in `error.data`
+        // This will show messages like "Coupon code not found."
+        const errorMessage =
+          error?.data?.message || // For PocketBase ClientResponseError
+          error.message || // For generic errors
+          'An unknown error occurred.';
+
+        showAlert(errorMessage);
+      },
+      onSettled: () => {
+        // This runs after success OR error
+        setManualCode(''); // Clear the manual code input regardless
+      },
+    }
+  );
+
+  // --- MODIFIED: Handle manual code submission ---
   const handleManualCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualCode.trim()) return;
-    console.log('Submitting code:', manualCode);
-    showAlert(`Code "${manualCode}" submitted! (Simulation)`);
-    setManualCode('');
+    if (!manualCode.trim() || isScanning) return; // Prevent if empty or loading
+    scanCodeMutate(manualCode);
   };
 
   const handleScanClick = () => {
@@ -467,18 +506,18 @@ function HomePage({
     setIsScannerOpen(true);
   };
 
-  // --- New handler for scan result ---
+  // --- MODIFIED: Handle scan result ---
   const handleScanResult = (result: string) => {
     setIsScannerOpen(false);
-    showAlert(`Scanned Code: ${result}`);
-    // Here you would typically also submit this code, e.g.:
-    // console.log('Submitting scanned code:', result);
+    if (isScanning) return; // Prevent if already scanning
+    // Don't show alert here, the mutation will handle it
+    scanCodeMutate(result);
   };
 
   const fetchProfileRefresh = async () => {
     const { record, token } = await pb.collection('users').authRefresh();
 
-    await setCookie("pb_auth", token, {
+    await setCookie('pb_auth', token, {
       maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
     });
 
@@ -505,9 +544,8 @@ function HomePage({
     },
     refetchOnWindowFocus: false,
     retryDelay: 3000,
-    refetchOnReconnect: true
+    refetchOnReconnect: true,
   });
-
 
   return (
     <>
@@ -576,15 +614,26 @@ function HomePage({
                     <span className="label-text">Enter Code Manually</span>
                   </label>
                   <div className="join w-full">
+                    {/* --- MODIFIED INPUT --- */}
                     <input
                       type="text"
                       placeholder="e.g., A1B2-C3D4"
                       className="input input-bordered join-item w-full"
                       value={manualCode}
                       onChange={(e) => setManualCode(e.target.value)}
+                      disabled={isScanning}
                     />
-                    <button type="submit" className="btn btn-secondary join-item">
-                      Submit
+                    {/* --- MODIFIED BUTTON --- */}
+                    <button
+                      type="submit"
+                      className="btn btn-secondary join-item w-24"
+                      disabled={isScanning}
+                    >
+                      {isScanning ? (
+                        <span className="loading loading-spinner"></span>
+                      ) : (
+                        'Submit'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -594,19 +643,30 @@ function HomePage({
 
           {/* Scan Button (Main CTA) */}
           <div className="text-center my-6 grow">
+            {/* --- MODIFIED BUTTON --- */}
             <button
               className="btn btn-accent btn-lg h-40 w-40 rounded-full shadow-lg flex-col gap-2"
               onClick={handleScanClick} // Updated
+              disabled={isScanning}
             >
-              <QrCode size={48} />
-              <span className="text-lg">Scan Code</span>
+              {isScanning ? (
+                <span className="loading loading-spinner loading-lg"></span>
+              ) : (
+                <>
+                  <QrCode size={48} />
+                  <span className="text-lg">Scan Code</span>
+                </>
+              )}
             </button>
           </div>
 
           {/* Activity Tabs Section */}
           <div className="mt-4">
             {/* --- Updated Tab List --- */}
-            <div role="tablist" className="tabs tabs-boxed mb-3 bg-base-100/50 justify-center">
+            <div
+              role="tablist"
+              className="tabs tabs-boxed mb-3 bg-base-100/50 justify-center"
+            >
               <a
                 role="tab"
                 className={`tab ${activeTab === 'recent' ? 'tab-active font-semibold' : ''
@@ -685,242 +745,5 @@ function HomePage({
   );
 }
 
-// --- REDEEM MODAL CONTENT COMPONENT ---
-
-type RedeemModalProps = {
-  rewards: Reward[];
-  onRedeemClick: (reward: Reward) => void;
-};
-
-function RedeemModalContent({
-  rewards,
-  onRedeemClick,
-}: RedeemModalProps) {
-
-  const { profile, setProfile } = useProfileStore();
-
-  const redeemableValue = (profile?.total_points! / 100).toFixed(2); // 100 points = ₹1
-
-  return (
-    <>
-      {/* Main Content Area (scrollable) */}
-      <main className="grow flex flex-col items-center p-4 overflow-y-auto max-h-[70vh]">
-        <div className="w-full">
-          {/* Redeemable Value Card */}
-          <div className="card bg-secondary text-secondary-content shadow-lg mb-6">
-            <div className="card-body items-center text-center p-5">
-              <h2 className="card-title opacity-80">Your Points are worth</h2>
-              <p className="text-4xl font-bold">₹{redeemableValue}</p>
-              <p className="opacity-90 text-sm">
-                {profile?.total_points?.toLocaleString()} Points Available
-              </p>
-            </div>
-          </div>
-
-          {/* Rewards List */}
-          <h3 className="text-lg font-semibold mb-3 text-base-content">
-            Available Rewards
-          </h3>
-          <div className="grid grid-cols-1 gap-4">
-            {rewards.map((reward) => {
-              const canAfford = profile?.total_points! >= reward.points;
-              const Icon = reward.icon;
-              return (
-                <div
-                  key={reward.id}
-                  className="card bg-base-100 shadow-md"
-                >
-                  <div className="card-body flex-row justify-between items-center p-5">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-accent/10 rounded-full">
-                        <Icon size={24} className="text-accent" />
-                      </div>
-                      <div>
-                        <h2 className="card-title text-base-content">
-                          {reward.title}
-                        </h2>
-                        <p className="text-accent font-semibold">
-                          {reward.points.toLocaleString()} Points
-                        </p>
-                      </div>
-                    </div>
-                    <div className="card-actions">
-                      <button
-                        className="btn btn-primary"
-                        disabled={!canAfford}
-                        onClick={() => onRedeemClick(reward)}
-                      >
-                        Redeem
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </main>
-    </>
-  );
-}
-
-// --- TRANSACTION ITEM COMPONENT ---
-
-function TransactionItem({ transaction }: { transaction: Transaction }) {
-  const isEarn = transaction.type === 'earn';
-  const pointsColor = isEarn ? 'text-success' : 'text-error';
-  const Icon = isEarn ? TrendingUp : TrendingDown;
-
-  return (
-    <li className="flex items-center justify-between p-4 hover:bg-base-200 transition-colors">
-      <div className="flex items-center">
-        <div
-          className={`mr-3 p-2 rounded-full ${isEarn ? 'bg-success/10' : 'bg-error/10'
-            }`}
-        >
-          <Icon size={20} className={isEarn ? 'text-success' : 'text-error'} />
-        </div>
-        <div>
-          <p className="font-semibold text-base-content">{transaction.title}</p>
-          <p className="text-sm text-base-content/70">{transaction.date}</p>
-        </div>
-      </div>
-      <div className="flex items-center">
-        <span className={`font-bold mr-2 ${pointsColor}`}>
-          {isEarn ? '+' : ''}
-          {transaction.points}
-        </span>
-        <ChevronRight size={18} className="text-base-content/30" />
-      </div>
-    </li>
-  );
-}
-
-// --- NEW REDEEM REQUEST ITEM COMPONENT ---
-
-function RedeemRequestItem({ request }: { request: RedeemRequest }) {
-  let StatusIcon: React.ElementType;
-  let statusColorClass: string;
-
-  switch (request.status) {
-    case 'Accepted':
-      StatusIcon = CheckCircle;
-      statusColorClass = 'badge-success';
-      break;
-    case 'Rejected':
-      StatusIcon = XCircle;
-      statusColorClass = 'badge-error';
-      break;
-    case 'Pending':
-    default:
-      StatusIcon = AlertCircle;
-      statusColorClass = 'badge-warning';
-      break;
-  }
-
-  return (
-    <li className="p-4 hover:bg-base-200 transition-colors">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center">
-          <div className="mr-3 p-2 rounded-full bg-primary/10">
-            <Gift size={20} className="text-primary" />
-          </div>
-          <div>
-            <p className="font-semibold text-base-content">{request.title}</p>
-            <p className="text-sm text-base-content/70">{request.date}</p>
-          </div>
-        </div>
-        <div className="flex items-center">
-          <span className="font-bold mr-2 text-error">
-            -{request.points.toLocaleString()}
-          </span>
-          <ChevronRight size={18} className="text-base-content/30" />
-        </div>
-      </div>
-      <div className="pl-12">
-        <div className={`badge ${statusColorClass} gap-1.5`}>
-          <StatusIcon size={14} />
-          {request.status}
-        </div>
-        {request.message && (
-          <p className="text-sm text-base-content/80 mt-1.5">
-            {request.message}
-          </p>
-        )}
-      </div>
-    </li>
-  );
-}
-
-// --- NEW QR SCANNER MODAL COMPONENT ---
-
-type QRScannerModalProps = {
-  onClose: () => void;
-  onScan: (result: string) => void;
-};
-
-function QRScannerModal({ onClose, onScan }: QRScannerModalProps) {
-  const [scanError, setScanError] = useState<string | null>(null);
-
-  const handleScan = (result: any) => {
-    // The library returns an array of results
-    if (result && result.length > 0) {
-      onScan(result[0].rawValue);
-    }
-  };
-
-  const handleError = (err: unknown) => {
-    console.error('QR Scan Error:', err);
-    setScanError('An unknown error occurred.');
-  };
-
-  return (
-    // Backdrop
-    <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-      {/* Scanner Viewport */}
-      <div className="relative w-full max-w-md bg-neutral rounded-box shadow-2xl overflow-hidden aspect-square">
-        <Scanner
-          onScan={handleScan}
-          onError={handleError}
-          constraints={{
-            facingMode: 'environment', // Use rear camera
-          }}
-          styles={{
-            container: {
-              width: '100%',
-              height: '100%',
-              paddingTop: '0', // Override default
-            },
-            video: {
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            },
-          }}
-        />
-        {/* Scanning Box Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center p-8">
-          <div className="w-full h-full border-4 border-white/50 rounded-lg shadow-inner-lg" />
-        </div>
-      </div>
-
-      {/* Close Button */}
-      <button
-        className="btn btn-circle btn-ghost text-white mt-6"
-        onClick={onClose}
-      >
-        <X size={32} />
-      </button>
-
-      {/* Error Message */}
-      {scanError && (
-        <div className="text-center text-error bg-error/20 p-3 rounded-md mt-4 max-w-md">
-          <p className="font-semibold">Could not start scanner</p>
-          <p className="text-sm">{scanError}</p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default App; // Renamed default export
