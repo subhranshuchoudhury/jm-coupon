@@ -133,7 +133,7 @@ export default function HomePage({
     };
 
     // --- Periodic Profile Refresh ---
-    useQuery({
+    const { isLoading } = useQuery({
         queryKey: ['userProfile', profile?.uid],
         queryFn: fetchProfileRefresh,
         enabled: !!profile?.uid,
@@ -194,7 +194,7 @@ export default function HomePage({
                                     <h2 className="card-title opacity-80">Total Points</h2>
                                     <p className="text-4xl font-bold">
                                         {/* --- Read from prop --- */}
-                                        {totalPoints.toLocaleString()}
+                                        {totalPoints.toLocaleString() === "0" ? isLoading ? "..." : "0" : totalPoints.toLocaleString()}
                                     </p>
                                 </div>
                                 <button
