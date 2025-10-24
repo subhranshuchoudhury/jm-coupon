@@ -9,7 +9,7 @@ export type Reward = {
 }
 
 export type Transaction = {
-    id: number;
+    id: string;
     type: string;
     title: string;
     points: number;
