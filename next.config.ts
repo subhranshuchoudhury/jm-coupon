@@ -8,7 +8,13 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: isDev, // 👈 disables PWA in dev, fixes the warning
-  // fallbacks: {}
+  fallbacks: {
+    document: '/offline.html',
+    audio: '',
+    video: '',
+    image: '',
+    font: '',
+  }
 });
 
 const nextConfig = withPWA({
