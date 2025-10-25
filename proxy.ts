@@ -7,7 +7,7 @@ const pb = new PocketBase(process.env.POCKETBASE_URL);
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    console.log("PATH NAME", pathname)
+    // console.log("PATH NAME", pathname)
 
     // Get token from cookies
     const token = request.cookies.get('pb_auth')?.value;
