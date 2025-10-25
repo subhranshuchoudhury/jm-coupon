@@ -17,14 +17,14 @@ export default function SignInForm() {
 
         try {
             // Trigger PocketBase Google OAuth2 authentication
-            //   await pb.collection("users").authWithOAuth2({
-            //     provider: "google",
-            //   });
+            await pb.collection("users").authWithOAuth2({
+                provider: "google",
+            });
 
-            await pb.collection('users').authWithPassword(
-                'subhransuchoudhury00@gmail.com',
-                '1234567890',
-            );
+            // await pb.collection('users').authWithPassword(
+            //     'subhransuchoudhury00@gmail.com',
+            //     '1234567890',
+            // );
 
             // Log auth data for debugging
             console.log("Auth valid:", pb.authStore.isValid);
