@@ -8,6 +8,7 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: isDev, // 👈 disables PWA in dev, fixes the warning
+  // fallbacks: {}
 });
 
 const nextConfig = withPWA({
