@@ -6,15 +6,15 @@ export default function RedeemRequestItem({ request }: { request: RedeemRequest 
     let statusColorClass: string;
 
     switch (request.status) {
-        case 'Accepted':
+        case 'approved':
             StatusIcon = CheckCircle;
             statusColorClass = 'badge-success';
             break;
-        case 'Rejected':
+        case 'rejected':
             StatusIcon = XCircle;
             statusColorClass = 'badge-error';
             break;
-        case 'Pending':
+        case 'pending':
         default:
             StatusIcon = AlertCircle;
             statusColorClass = 'badge-warning';

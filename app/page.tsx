@@ -113,15 +113,15 @@ function App() {
   const router = useRouter();
   const queryClient = useQueryClient(); // Get query client
 
-  const { profile } = useProfileStore();
+  const { profile, updateProfile } = useProfileStore();
 
   // --- REMOVED `totalPoints` state, will use `profile.total_points` directly ---
   const [alertMessage, setAlertMessage] = useState('');
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
   // --- New state for redemption form ---
-  const [upiId, setUpiId] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [upiId, setUpiId] = useState(profile?.upi_id || '');
+  const [fullName, setFullName] = useState(profile?.full_name || '');
 
   // --- REMOVED `redeemRequests` state ---
 
@@ -156,28 +156,39 @@ function App() {
     name: string;
   }) => {
     const apiData = {
-      user: profile!.uid,
       title: data.reward.title,
       points: data.reward.points, // Store the positive point cost
       upi_id: data.upi,
       full_name: data.name || '',
-      status: 'Pending',
-      message: 'Your request is being processed.',
     };
-    // --- ASSUMING collection name is 'redeem_requests' ---
-    const record = await pb.collection('redeem_requests').create(apiData);
+
+    const record = await pb.send("/api/v1/redeem", {
+      method: "POST",
+      body: JSON.stringify(apiData),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
     return record;
   };
 
-  const { mutate: createRedeemRequest, isLoading: isRedeeming } = useMutation(
+  const { mutate: createRedeemRequest, isPending: isRedeeming } = useMutation(
     createRedeemRequestApi,
     {
       onSuccess: () => {
         showAlert(`Successfully submitted request for "${selectedReward!.title}"!`);
 
+        updateProfile({
+          total_points: profile!.total_points - selectedReward!.points,
+          full_name: fullName,
+          upi_id: upiId,
+        })
+
         // Refetch data
         queryClient.invalidateQueries({ queryKey: ['redeemRequests', profile!.uid] });
         queryClient.invalidateQueries({ queryKey: ['userProfile', profile!.uid] }); // To update points
+        queryClient.invalidateQueries({ queryKey: ['transactions', profile!.uid] });
+
         // We don't need to refetch transactions, as the redeem request
         // itself doesn't create a transaction. A backend process will.
 
@@ -436,6 +447,7 @@ function App() {
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
                 disabled={isRedeeming} // Disable on loading
+              // defaultValue={profile?.upi_id}
               />
             </div>
             <div className="form-control w-full">
@@ -450,6 +462,7 @@ function App() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 disabled={isRedeeming} // Disable on loading
+              // defaultValue={profile?.full_name}
               />
             </div>
           </div>

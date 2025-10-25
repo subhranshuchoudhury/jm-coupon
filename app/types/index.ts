@@ -21,6 +21,6 @@ export type RedeemRequest = {
     title: string;
     points: number;
     date: string;
-    status: 'Pending' | 'Accepted' | 'Rejected';
+    status: 'approved' | 'rejected' | 'pending';
     message?: string;
 };
