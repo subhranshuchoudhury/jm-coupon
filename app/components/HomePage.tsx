@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { setCookie } from "cookies-next";
 import pb from "@/lib/pocketbase";
 import useProfileStore from "@/stores/profile.store";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RedeemRequest, Transaction } from "../types";
 
 type HomePageProps = {
@@ -54,46 +54,45 @@ export default function HomePage({
     };
 
     // --- NEW: Setup the mutation ---
-    const { mutate: scanCodeMutate, isPending: isScanning } = useMutation(
-        scanCodeApi,
-        {
-            onSuccess: (data) => {
-                // This is a true success (HTTP 2xx)
+    const { mutate: scanCodeMutate, isPending: isScanning } = useMutation({
+        mutationFn: scanCodeApi,
+        onSuccess: (data) => {
+            // This is a true success (HTTP 2xx)
 
-                // 'data' is the response body
-                const audio = new Audio('/success_sound.mp3'); // Adjust path if needed
-                audio.play().catch((err) => {
-                    console.error('Audio playback failed:', err);
-                });
+            // 'data' is the response body
+            const audio = new Audio('/success_sound.mp3'); // Adjust path if needed
+            audio.play().catch((err) => {
+                console.error('Audio playback failed:', err);
+            });
 
-                showAlert("🎉" + data.message || 'Code submitted successfully!');
-                // Refetch the user's profile to update points
-                queryClient.invalidateQueries({
-                    queryKey: ['userProfile', profile?.uid],
-                });
-                // --- ALSO REFETCH TRANSACTIONS ---
-                queryClient.invalidateQueries({
-                    queryKey: ['transactions', profile?.uid],
-                });
-            },
-            onError: (error: any) => {
-                // This is a network error or HTTP 4xx/5xx
-                console.error('Scan API Error:', error);
+            showAlert("🎉" + data.message || 'Code submitted successfully!');
+            // Refetch the user's profile to update points
+            queryClient.invalidateQueries({
+                queryKey: ['userProfile', profile?.uid],
+            });
+            // --- ALSO REFETCH TRANSACTIONS ---
+            queryClient.invalidateQueries({
+                queryKey: ['transactions', profile?.uid],
+            });
+        },
+        onError: (error: any) => {
+            // This is a network error or HTTP 4xx/5xx
+            console.error('Scan API Error:', error);
 
-                // The error object from pb.send has the JSON response in `error.data`
-                // This will show messages like "Coupon code not found."
-                const errorMessage =
-                    error?.data?.message || // For PocketBase ClientResponseError
-                    error.message || // For generic errors
-                    'An unknown error occurred.';
+            // The error object from pb.send has the JSON response in `error.data`
+            // This will show messages like "Coupon code not found."
+            const errorMessage =
+                error?.data?.message || // For PocketBase ClientResponseError
+                error.message || // For generic errors
+                'An unknown error occurred.';
 
-                showAlert(errorMessage);
-            },
-            onSettled: () => {
-                // This runs after success OR error
-                setManualCode(''); // Clear the manual code input regardless
-            },
-        }
+            showAlert(errorMessage);
+        },
+        onSettled: () => {
+            // This runs after success OR error
+            setManualCode(''); // Clear the manual code input regardless
+        },
+    }
     );
 
     // --- MODIFIED: Handle manual code submission ---
@@ -133,21 +132,27 @@ export default function HomePage({
     };
 
     // --- Periodic Profile Refresh ---
-    const { isLoading } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ['userProfile', profile?.uid],
         queryFn: fetchProfileRefresh,
         enabled: !!profile?.uid,
-        onSuccess: (data) => {
-            updateProfile(data);
-        },
-        onError: (error) => {
-            console.error('Error refreshing profile:', error);
-        },
         retryDelay: 5000,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
         refetchInterval: 10000,
     });
+
+    useEffect(() => {
+        if (data) {
+            updateProfile(data);
+        }
+    }, [data]);
+
+    useEffect(() => {
+        if (isError) {
+            console.error('Error refreshing profile:', error);
+        }
+    }, [isError, error]);
 
     return (
         <>

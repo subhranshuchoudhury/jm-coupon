@@ -172,45 +172,44 @@ function App() {
     return record;
   };
 
-  const { mutate: createRedeemRequest, isPending: isRedeeming } = useMutation(
-    createRedeemRequestApi,
-    {
-      onSuccess: () => {
-        showAlert(`Successfully submitted request for "${selectedReward!.title}"!`);
+  const { mutate: createRedeemRequest, isPending: isRedeeming } = useMutation({
+    mutationFn: createRedeemRequestApi,
+    onSuccess: () => {
+      showAlert(`Successfully submitted request for "${selectedReward!.title}"!`);
 
-        updateProfile({
-          total_points: profile!.total_points - selectedReward!.points,
-          full_name: fullName,
-          upi_id: upiId,
-        })
+      updateProfile({
+        total_points: profile!.total_points - selectedReward!.points,
+        full_name: fullName,
+        upi_id: upiId,
+      })
 
-        // Refetch data
-        queryClient.invalidateQueries({ queryKey: ['redeemRequests', profile!.uid] });
-        queryClient.invalidateQueries({ queryKey: ['userProfile', profile!.uid] }); // To update points
-        queryClient.invalidateQueries({ queryKey: ['transactions', profile!.uid] });
+      // Refetch data
+      queryClient.invalidateQueries({ queryKey: ['redeemRequests', profile!.uid] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', profile!.uid] }); // To update points
+      queryClient.invalidateQueries({ queryKey: ['transactions', profile!.uid] });
 
-        // We don't need to refetch transactions, as the redeem request
-        // itself doesn't create a transaction. A backend process will.
+      // We don't need to refetch transactions, as the redeem request
+      // itself doesn't create a transaction. A backend process will.
 
-        // Close modals
-        (
-          document.getElementById('redeem_confirm_modal') as HTMLDialogElement
-        )?.close();
-        (
-          document.getElementById('redeem_page_modal') as HTMLDialogElement
-        )?.close();
+      // Close modals
+      (
+        document.getElementById('redeem_confirm_modal') as HTMLDialogElement
+      )?.close();
+      (
+        document.getElementById('redeem_page_modal') as HTMLDialogElement
+      )?.close();
 
-        // Clear state
-        setSelectedReward(null);
-        setUpiId('');
-        setFullName('');
-      },
-      onError: (error: any) => {
-        const errorMessage =
-          error?.data?.message || error.message || 'An unknown error occurred.';
-        showAlert(`Redemption failed: ${errorMessage}`);
-      },
-    }
+      // Clear state
+      setSelectedReward(null);
+      setUpiId('');
+      setFullName('');
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.data?.message || error.message || 'An unknown error occurred.';
+      showAlert(`Redemption failed: ${errorMessage}`);
+    },
+  }
   );
 
   // --- Redemption Logic ---

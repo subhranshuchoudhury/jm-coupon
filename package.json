@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@tanstack/query-async-storage-persister": "^5.90.7",
-    "@tanstack/react-query": "4",
-    "@tanstack/react-query-devtools": "4",
+    "@tanstack/react-query": "5.90.5",
+    "@tanstack/react-query-devtools": "5.90.2",
     "@tanstack/react-query-persist-client": "^5.90.7",
     "@yudiel/react-qr-scanner": "^2.4.0",
     "cookies-next": "^6.1.1",
@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",
-    "@tanstack/eslint-plugin-query": "4",
+    "@tanstack/eslint-plugin-query": "5.91.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
