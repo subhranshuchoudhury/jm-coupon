@@ -1,6 +1,7 @@
 {
-    "name": "Coupons App - Jyeshtha Motors",
-    "short_name": "CouponsApp",
+    "name": "JM Rewards - Jyeshtha Motors Coupons Reward",
+    "short_name": "JM Rewards",
+    "version": "0.1.0",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
@@ -8,12 +9,12 @@
     "description": "An app to manage and redeem coupons for Jyeshtha Motors.",
     "icons": [
         {
-            "src": "/icons/icon-192.png",
+            "src": "/icons/jm_192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/icons/icon-512.png",
+            "src": "/icons/jm_512.png",
             "sizes": "512x512",
             "type": "image/png"
         }
