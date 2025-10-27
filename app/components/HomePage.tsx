@@ -135,7 +135,7 @@ export default function HomePage({
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['userProfile', profile?.uid],
         queryFn: fetchProfileRefresh,
-        enabled: !!profile?.uid,
+        enabled: !!pb.authStore.token,
         retryDelay: 5000,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,

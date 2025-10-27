@@ -27,9 +27,11 @@ export default function SignInForm() {
             // );
 
             // Log auth data for debugging
-            console.log("Auth valid:", pb.authStore.isValid);
-            console.log("Auth token:", pb.authStore.token);
-            console.log("Auth Record", pb.authStore.record);
+            if (process.env.NODE_ENV === "development") {
+                console.log("Auth valid:", pb.authStore.isValid);
+                console.log("Auth token:", pb.authStore.token);
+                console.log("Auth Record", pb.authStore.record);
+            }
 
             // Export auth store to cookie
             const cookieString = pb.authStore.token;
@@ -39,6 +41,7 @@ export default function SignInForm() {
                     uid: record.id,
                     email: record.email,
                     avatar: record.avatar,
+                    avatarCollectionId: record.collectionId,
                     updated: record.updated,
                     name: record.name,
                     token: pb.authStore.token,

@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import RedeemModalContent from './components/RedeemModalContent';
 import { RedeemRequest, Reward } from './types';
 import HomePage from './components/HomePage';
+import Image from 'next/image';
 
 // --- MOCK DATA (Only for rewards, as no API was provided for it) ---
 const mockRewards = [
@@ -360,6 +361,10 @@ function App() {
             <div className="avatar placeholder mb-4">
               <div className="bg-neutral text-neutral-content rounded-full w-24">
                 {/* <User size={48} /> */}
+                {
+                  profile?.avatar && (<img alt='profile' width={48} height={48} src={`http://localhost:8090/api/files/_pb_users_auth_/df2iub1g99ls990/acg8oc_jdcvj0_x7_j381_ihaf_kg_yhtep_nuy_zuwl_aeu_lwt7_qv_sr2on3e_s96_c_ni14nie11s_wykb682squ.jpg`} />)
+                }
+
               </div>
             </div>
             <p className="text-xl font-semibold">{profile?.name}</p>
