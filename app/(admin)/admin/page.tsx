@@ -29,6 +29,8 @@ import { ListResult } from 'pocketbase'; // Import Record type
 
 // NOTE: Replace this with your actual PocketBase client import
 import pb from '@/lib/pocketbase';
+import useProfileStore from '@/stores/profile.store';
+import { AdminView, Coupon, PaginatedResult, PocketBaseCoupon, PocketBaseRedeemRequest, PocketBaseUser, RedeemRequestAdmin, RedeemStatus, User } from '@/app/types';
 
 // --- CONFIGURATION ---
 const PER_PAGE = 10;
@@ -48,106 +50,6 @@ const formatDate = (dateString: string) => {
         return datePart; // Fallback to raw string if date parsing fails
     }
 };
-
-// --- TYPE DEFINITIONS (UPDATED) ---
-
-// Consistent status enum based on your acceptable statuses
-type RedeemStatus = 'pending' | 'approved' | 'rejected' | string;
-
-type PocketBaseUser = {
-    id: string;
-    name: string;
-    email: string;
-    total_points: number;
-    role: 'user' | 'admin' | string;
-    avatar?: string;
-    created: string;
-    updated: string;
-    // Add the collectionId for image URL generation
-    collectionId: string;
-};
-
-type User = {
-    id: string;
-    name: string;
-    email: string;
-    total_points: number;
-    role: 'user' | 'admin' | string;
-    avatar?: string;
-    avatarCollectionId?: string; // Stored for image generation
-};
-
-type PocketBaseRedeemRequest = {
-    id: string;
-    user: string; // Relation ID to User
-    expand?: {
-        user: PocketBaseUser;
-    };
-    points: number | string; // Updated to match your API response with string for robustness
-    title: string;
-    message: string;
-    status: RedeemStatus;
-    full_name: string; // From your API response
-    created: string;
-    updated: string;
-};
-
-type RedeemRequest = {
-    id: string;
-    userId: string;
-    userName: string;
-    rewardTitle: string;
-    points: number;
-    status: RedeemStatus;
-    message: string;
-    date: string;
-};
-
-type PocketBaseCoupon = {
-    id: string;
-    code: string;
-    points: number;
-    redeemed: boolean; // Keep redeemed as per your API
-    // usesLeft?: number | 'unlimited'; // Removed as it's not in your API example
-    // expiryDate: string; // Removed as it's not in your API example
-    created: string;
-    updated: string;
-    // Add other fields from your API response:
-    collectionId: string;
-    collectionName: string;
-    redeemed_by?: string;
-};
-
-type Coupon = {
-    id: string;
-    code: string;
-    points: number;
-    usesStatus: 'redeemed' | 'available'; // Simplified logic based on provided API: if 'redeemed', usesStatus is 'redeemed'
-    // expiryDate: string; // Removed
-};
-
-type PaginatedResult<T> = {
-    page: number;
-    perPage: number;
-    totalPages: number;
-    totalItems: number;
-    items: T[];
-};
-
-type AdminView = 'dashboard' | 'users' | 'redeem' | 'coupons' | 'scan';
-
-
-// --- DUMMY PROFILE STORE (To avoid errors from a missing store) ---
-// REPLACE THIS WITH YOUR ACTUAL `useProfileStore`
-const useProfileStore = () => ({
-    profile: {
-        uid: 'df2iub1g99ls990', // Placeholder ID
-        name: 'Admin User',
-        avatar: 'acg8oc_jdcvj0_x7_j381_ihaf_kg_yhtep_nuy_zuwl_aeu_lwt7_qv_sr2on3e_s96_c_ni14nie11s_wykb682squ.jpg', // Placeholder avatar
-        avatarCollectionId: '_pb_users_auth_', // Placeholder collection ID
-    },
-    updateProfile: (data: Partial<any>) => console.log('Dummy Update Profile:', data),
-});
 
 
 // --- POCKETBASE API LAYER (CUSTOM HOOKS AND FUNCTIONS) ---
@@ -186,13 +88,13 @@ const deleteUser = async (id: string) => {
 };
 
 // 2. REDEEM REQUESTS API
-const fetchRedeemRequests = async (page: number): Promise<PaginatedResult<RedeemRequest>> => {
+const fetchRedeemRequests = async (page: number): Promise<PaginatedResult<RedeemRequestAdmin>> => {
     const resultList: ListResult<PocketBaseRedeemRequest> = await pb.collection('redeem_requests').getList(page, PER_PAGE, {
         expand: 'user', // Request to expand the user relation
         sort: '-created',
     });
 
-    const requests: RedeemRequest[] = resultList.items.map(item => {
+    const requests: RedeemRequestAdmin[] = resultList.items.map(item => {
         // Fallback for user name: 1. Expanded user name 2. full_name field 3. 'Unknown User'
         const userName = item.expand?.user?.name || item.full_name || 'Unknown User';
         // Coerce points to a number
@@ -331,7 +233,7 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
 
     // Construct the actual avatar URL for the current admin user
     const avatarUrl = useMemo(() => {
-        if (profile.avatar && profile.uid && profile.avatarCollectionId) {
+        if (profile?.avatar && profile.uid && profile.avatarCollectionId) {
             // Replace DUMMY_BASE_URL with pb.baseURL if your PocketBase client is correctly configured
             return `${pb.baseURL}api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`;
         }
@@ -805,7 +707,7 @@ function UserManagementView() {
 function RedeemRequestView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedRequest, setSelectedRequest] = useState<RedeemRequest | null>(null);
+    const [selectedRequest, setSelectedRequest] = useState<RedeemRequestAdmin | null>(null);
 
     // Fetch data using React Query
     const { data, isLoading, isError } = useQuery({
@@ -824,7 +726,7 @@ function RedeemRequestView() {
         },
     });
 
-    const handleModifyClick = (request: RedeemRequest) => {
+    const handleModifyClick = (request: RedeemRequestAdmin) => {
         setSelectedRequest(request);
         (document.getElementById('redeem_modify_modal') as HTMLDialogElement)?.showModal();
     };
