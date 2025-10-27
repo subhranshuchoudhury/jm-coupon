@@ -362,7 +362,7 @@ function App() {
               <div className="bg-neutral text-neutral-content rounded-full w-24">
                 {/* <User size={48} /> */}
                 {
-                  profile?.avatar && (<img alt='profile' width={48} height={48} src={`${pb.baseURL}api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`} />)
+                  profile?.avatar && (<img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`} />)
                 }
 
               </div>

@@ -5,7 +5,7 @@ import pb from "@/lib/pocketbase";
 export default function UserAvatar({ user, size }: { user: User, size: number }) {
     if (user.avatar && user.avatarCollectionId) {
         // Construct the full avatar URL
-        const avatarUrl = `${pb.baseURL}api/files/${user.avatarCollectionId}/${user.id}/${user.avatar}`;
+        const avatarUrl = `${pb.baseURL}/api/files/${user.avatarCollectionId}/${user.id}/${user.avatar}`;
         return (
             <div className="avatar">
                 <div className="mask mask-squircle w-12 h-12">

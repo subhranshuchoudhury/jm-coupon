@@ -32,7 +32,7 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
     const avatarUrl = useMemo(() => {
         if (profile?.avatar && profile.uid && profile.avatarCollectionId) {
             // Replace DUMMY_BASE_URL with pb.baseURL if your PocketBase client is correctly configured
-            return `${pb.baseURL}api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`;
+            return `${pb.baseURL}/api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`;
         }
         return null;
     }, [profile]);
