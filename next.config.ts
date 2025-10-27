@@ -1,4 +1,3 @@
-import type { NextConfig } from "next";
 import withPWAInit from "next-pwa";
 
 const isDev = process.env.NODE_ENV === "development";

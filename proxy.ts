@@ -11,6 +11,7 @@ export async function proxy(request: NextRequest) {
 
     // Get token from cookies
     const token = request.cookies.get('pb_auth')?.value;
+    const role = request.cookies.get('role')?.value;
 
 
     if (!token && pathname === "/signin") {
@@ -27,11 +28,36 @@ export async function proxy(request: NextRequest) {
         try {
             pb.authStore.save(token);
 
+
+
             if (pb.authStore.isValid) {
+
+                // await pb.collection('users').authRefresh();
 
 
                 if (pathname === "/signin") {
+
+                    if (role === "admin") {
+                        const response = NextResponse.redirect(new URL('/admin', request.url));
+                        // response.cookies.set('pb_auth', pb.authStore.token, {
+                        //     expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+                        //     path: '/'
+                        // });
+                        return response;
+                    }
+
                     const response = NextResponse.redirect(new URL('/', request.url));
+                    // response.cookies.set('pb_auth', pb.authStore.token, {
+                    //     expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+                    //     path: '/'
+                    // });
+                    return response;
+                }
+
+                if (pathname.includes("admin") && role !== "admin") {
+                    const response = NextResponse.redirect(new URL('/', request.url));
+                    response.cookies.delete('pb_auth');
+                    response.cookies.delete('role');
                     return response;
                 }
 
