@@ -213,8 +213,8 @@ function App() {
 
       // Clear state
       setSelectedReward(null);
-      setUpiId('');
-      setFullName('');
+      // setUpiId('');
+      // setFullName('');
     },
     onError: (error: any) => {
       const errorMessage =
@@ -263,8 +263,8 @@ function App() {
   const handleRedemptionCancel = () => {
     setSelectedReward(null);
     // --- Clear form state on cancel ---
-    setUpiId('');
-    setFullName('');
+    // setUpiId('');
+    // setFullName('');
   };
 
   // --- Modal Opening ---
