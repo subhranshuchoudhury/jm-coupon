@@ -299,13 +299,13 @@ function App() {
             <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
               <Sparkles size={20} className="text-info mt-1 shrink-0" />
               <div>
-                <p className="font-semibold">Welcome Bonus!</p>
+                <p className="font-semibold">Welcome!</p>
                 <p className="text-sm text-base-content/80">
-                  You've received 100 bonus points for joining.
+                  Thanks for joining our rewards program. Start earning points today!
                 </p>
               </div>
             </div>
-            <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
+            {/* <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
               <Coffee size={20} className="text-success mt-1 shrink-0" />
               <div>
                 <p className="font-semibold">Redemption Successful</p>
@@ -313,8 +313,8 @@ function App() {
                   Your 'Free Coffee' reward has been redeemed.
                 </p>
               </div>
-            </div>
-            <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
+            </div> */}
+            {/* <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
               <Gift size={20} className="text-accent mt-1 shrink-0" />
               <div>
                 <p className="font-semibold">New Reward Available</p>
@@ -322,7 +322,7 @@ function App() {
                   Complete your profile to earn 50 extra points!
                 </p>
               </div>
-            </div>
+            </div> */}
           </div>
           <div className="modal-action">
             <form method="dialog">

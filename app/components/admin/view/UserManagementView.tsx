@@ -5,7 +5,6 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Pagination from "../../Pagination";
-import pb from "@/lib/pocketbase";
 import UserAvatar from "../UserAvatar";
 
 export default function UserManagementView() {
@@ -96,7 +95,7 @@ export default function UserManagementView() {
                                                     <UserAvatar user={user} size={48} />
                                                     <div>
                                                         <div className="font-bold">{user.name}</div>
-                                                        <div className="text-sm opacity-50">{user.id.slice(0, 6)}...</div>
+                                                        <div className="text-sm opacity-50">{user.id}</div>
                                                     </div>
                                                 </div>
                                             </td>
