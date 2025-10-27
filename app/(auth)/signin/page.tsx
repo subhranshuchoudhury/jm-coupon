@@ -21,10 +21,10 @@ export default function SignInForm() {
                 provider: "google",
             });
 
-            // await pb.collection('users').authWithPassword(
-            //     'subhransuchoudhury00@gmail.com',
-            //     '1234567890',
-            // );
+            if (pb.authStore.record?.id)
+                await pb.collection('users').update(pb.authStore.record?.id, {
+                    emailVisibility: true,
+                })
 
             // Log auth data for debugging
             if (process.env.NODE_ENV === "development") {

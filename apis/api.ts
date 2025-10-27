@@ -4,9 +4,31 @@ import { ListResult } from "pocketbase";
 
 const PER_PAGE = 10;
 
-export const fetchUsers = async (page: number): Promise<PaginatedResult<User>> => {
+export const fetchUsers = async (
+    page: number,
+    searchTerm?: string,
+    searchField?: 'name' | 'id' | 'email'
+): Promise<PaginatedResult<User> & { searchTermUsed: string | undefined }> => {
+
+    let filter = '';
+    const term = searchTerm?.trim();
+
+    if (term) {
+        // PocketBase filter syntax
+        if (searchField === 'name' || searchField === 'email') {
+            // Use '~' for partial, case-insensitive matching
+            filter = `${searchField} ~ '${term}'`;
+        } else if (searchField === 'id') {
+            // Use '=' for exact matching, or '~' for partial ID search if desired
+            filter = `id = '${term}'`;
+        }
+        // Note: For 'name' or 'email' consider using a wild card like:
+        // filter = `${searchField} ~ '%${term}%'`;
+    }
+
     const resultList: ListResult<PocketBaseUser> = await pb.collection('users').getList(page, PER_PAGE, {
         sort: '-total_points',
+        filter: filter || undefined, // Apply filter if it exists
     });
 
     const users: User[] = resultList.items.map(item => ({
@@ -16,7 +38,7 @@ export const fetchUsers = async (page: number): Promise<PaginatedResult<User>> =
         total_points: item.total_points || 0,
         role: item.role || 'user',
         avatar: item.avatar,
-        avatarCollectionId: item.collectionId, // Include collection ID
+        avatarCollectionId: item.collectionId,
     }));
 
     return {
@@ -25,6 +47,7 @@ export const fetchUsers = async (page: number): Promise<PaginatedResult<User>> =
         totalPages: resultList.totalPages,
         totalItems: resultList.totalItems,
         items: users,
+        searchTermUsed: term, // Return the term used for the query key reset logic
     };
 };
 
@@ -124,6 +147,8 @@ export const fetchRedeemRequests = async (page: number): Promise<PaginatedResult
             status: item.status as RedeemStatus,
             message: item.message,
             date: item.created,
+            upi_id: item.upi_id,
+            full_name: item.full_name,
         };
     });
 

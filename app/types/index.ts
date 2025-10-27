@@ -60,6 +60,7 @@ export type PocketBaseRedeemRequest = {
         user: PocketBaseUser;
     };
     points: number | string; // Updated to match your API response with string for robustness
+    upi_id: string;
     title: string;
     message: string;
     status: RedeemStatus;
@@ -77,6 +78,8 @@ export type RedeemRequestAdmin = {
     status: RedeemStatus;
     message: string;
     date: string;
+    upi_id: string;
+    full_name: string;
 };
 
 export type PocketBaseCoupon = {

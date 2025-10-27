@@ -5,6 +5,7 @@ import { useState } from "react";
 
 type QRScannerModalProps = {
     onClose: () => void;
+    // The onScan function now accepts the raw string result from the QR code
     onScan: (result: string) => void;
 };
 
@@ -14,31 +15,33 @@ export default function QRScannerModal({ onClose, onScan }: QRScannerModalProps)
     const handleScan = (result: any) => {
         // The library returns an array of results
         if (result && result.length > 0) {
-            onScan(result[0].rawValue);
+            const rawValue = result[0].rawValue;
+            onScan(rawValue);
+            onClose(); // Close the modal immediately after a successful scan
         }
     };
 
     const handleError = (err: unknown) => {
         console.error('QR Scan Error:', err);
-        setScanError('An unknown error occurred.');
+        setScanError('Could not start the scanner. Check camera permissions.');
     };
 
     return (
-        // Backdrop
-        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+        // Backdrop (z-index needs to be high, e.g., z-50 for typical Tailwind/Next.js setups)
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
             {/* Scanner Viewport */}
-            <div className="relative w-full max-w-md bg-neutral rounded-box shadow-2xl overflow-hidden aspect-square">
+            <div className="relative w-full max-w-sm bg-neutral rounded-box shadow-2xl overflow-hidden aspect-square">
                 <Scanner
                     onScan={handleScan}
                     onError={handleError}
                     constraints={{
-                        facingMode: 'environment', // Use rear camera
+                        facingMode: 'environment', // Use rear camera (best for mobile scanning)
                     }}
                     styles={{
                         container: {
                             width: '100%',
                             height: '100%',
-                            paddingTop: '0', // Override default
+                            paddingTop: '0',
                         },
                         video: {
                             width: '100%',
@@ -64,7 +67,7 @@ export default function QRScannerModal({ onClose, onScan }: QRScannerModalProps)
             {/* Error Message */}
             {scanError && (
                 <div className="text-center text-error bg-error/20 p-3 rounded-md mt-4 max-w-md">
-                    <p className="font-semibold">Could not start scanner</p>
+                    <p className="font-semibold">Scanner Error</p>
                     <p className="text-sm">{scanError}</p>
                 </div>
             )}

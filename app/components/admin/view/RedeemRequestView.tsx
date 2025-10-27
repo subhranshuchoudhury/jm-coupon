@@ -4,7 +4,7 @@ import { fetchRedeemRequests, updateRedeemRequest } from "@/apis/api";
 import { PocketBaseRedeemRequest, RedeemRequestAdmin, RedeemStatus } from "@/app/types";
 import { formatDate } from "@/utils";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle, Edit, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Copy, Edit, XCircle } from "lucide-react"; // Import Copy icon
 import { useState } from "react";
 import Pagination from "../../Pagination";
 
@@ -18,6 +18,8 @@ export default function RedeemRequestView() {
         queryKey: ['redeem', currentPage],
         queryFn: () => fetchRedeemRequests(currentPage),
         placeholderData: keepPreviousData,
+        refetchInterval: 10000,
+        refetchOnMount: true,
     });
 
     // Mutation for updating redeem request status/message
@@ -49,6 +51,11 @@ export default function RedeemRequestView() {
         redeemUpdateMutation.mutate({ id: selectedRequest.id, data });
     };
 
+    const handleCopy = (text: string, fieldName: string) => {
+        navigator.clipboard.writeText(text);
+        // You might want to add a temporary message/toast here
+        alert(`${fieldName} copied to clipboard: ${text}`);
+    };
 
     const getStatusBadge = (status: RedeemStatus) => {
         switch (status.toLowerCase()) {
@@ -76,7 +83,8 @@ export default function RedeemRequestView() {
                             <table className="table w-full">
                                 <thead>
                                     <tr className="border-b border-base-content/10">
-                                        <th>User</th>
+                                        {/* Updated User Column Header */}
+                                        <th>User Details</th>
                                         <th>Reward Title</th>
                                         <th className="text-right">Points</th>
                                         <th>Status</th>
@@ -87,7 +95,23 @@ export default function RedeemRequestView() {
                                 <tbody>
                                     {data.items.map(req => (
                                         <tr key={req.id} className="hover">
-                                            <td className="font-semibold">{req.userName}</td>
+                                            {/* Updated User Cell Content */}
+                                            <td>
+                                                <div className="font-semibold">{req.userName} ({req.full_name})</div>
+                                                <div className="text-xs opacity-70">
+                                                    ID: <span className="font-mono">{req.userId}</span>
+                                                </div>
+                                                <div className="text-sm">
+                                                    UPI: <span className="font-mono">{req.upi_id}</span>
+                                                    <button
+                                                        className="btn btn-xs btn-ghost ml-2"
+                                                        onClick={() => handleCopy(req.upi_id, 'UPI ID')}
+                                                        title="Copy UPI ID"
+                                                    >
+                                                        <Copy size={12} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                             <td>{req.rewardTitle}</td>
                                             <td className="font-mono text-right">{req.points.toLocaleString()}</td>
                                             <td>{getStatusBadge(req.status)}</td>
@@ -130,7 +154,29 @@ export default function RedeemRequestView() {
                     )}
                     {selectedRequest && (
                         <form onSubmit={handleModalSubmit} className="space-y-4 pt-4">
-                            <p className="text-sm"><strong>User:</strong> {selectedRequest.userName}</p>
+                            <p className="text-sm">
+                                <strong>User:</strong> {selectedRequest.userName} ({selectedRequest.full_name})
+                                <br />
+                                <strong>User ID:</strong> <span className="font-mono">{selectedRequest.userId}</span>
+                                <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost ml-2"
+                                    onClick={() => handleCopy(selectedRequest.userId, 'User ID')}
+                                    title="Copy User ID"
+                                >
+                                    <Copy size={12} />
+                                </button>
+                                <br />
+                                <strong>UPI ID:</strong> <span className="font-mono">{selectedRequest.upi_id}</span>
+                                <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost ml-2"
+                                    onClick={() => handleCopy(selectedRequest.upi_id, 'UPI ID')}
+                                    title="Copy UPI ID"
+                                >
+                                    <Copy size={12} />
+                                </button>
+                            </p>
                             <p className="text-sm"><strong>Points:</strong> <span className="font-mono">{selectedRequest.points} pts</span></p>
                             <div className="form-control">
                                 <label className="label"><span className="label-text">Status</span></label>

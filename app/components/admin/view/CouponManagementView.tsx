@@ -2,18 +2,25 @@
 
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
-import pb from "@/lib/pocketbase";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2, QrCode } from "lucide-react"; // Import QrCode icon
 import { useState } from "react";
 import Pagination from "../../Pagination";
+import QRScannerModal from "../../QRScannerModal";
 
-
+// Helper function to show the modal by its ID
+const showModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.showModal();
+const closeModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.close();
 
 export default function CouponManagementView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+    // New state for QR scanner
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
+    // New state to hold the code entered via manual entry or scan
+    const [couponCodeInput, setCouponCodeInput] = useState<string>('');
+
 
     // Fetch data using React Query
     const { data, isLoading, isError } = useQuery({
@@ -27,8 +34,9 @@ export default function CouponManagementView() {
         mutationFn: createOrUpdateCoupon,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['coupons'] });
-            (document.getElementById('coupon_edit_modal') as HTMLDialogElement)?.close();
+            closeModal('coupon_edit_modal');
             setSelectedCoupon(null);
+            setCouponCodeInput(''); // Clear code input state
         },
     });
 
@@ -40,9 +48,15 @@ export default function CouponManagementView() {
         },
     });
 
-    const handleEditClick = (coupon: Coupon) => {
+    const handleOpenModal = (coupon: Coupon, initialCode = '') => {
+        couponMutate.reset(); // Key change: Clear previous status
         setSelectedCoupon(coupon);
-        (document.getElementById('coupon_edit_modal') as HTMLDialogElement)?.showModal();
+        setCouponCodeInput(initialCode || coupon.code);
+        showModal('coupon_edit_modal');
+    }
+
+    const handleEditClick = (coupon: Coupon) => {
+        handleOpenModal(coupon);
     };
 
     const handleDeleteClick = (coupon: Coupon) => {
@@ -51,10 +65,15 @@ export default function CouponManagementView() {
         }
     };
 
-    const handleCreateNew = () => {
-        // Only including fields we know exist in the PocketBase collection from your API response sample
-        setSelectedCoupon({ id: 'new', code: '', points: 0, usesStatus: 'available' });
-        (document.getElementById('coupon_edit_modal') as HTMLDialogElement)?.showModal();
+    const handleCreateNew = (initialCode = '') => {
+        const newCoupon: Coupon = { id: 'new', code: initialCode, points: 0, usesStatus: 'available' };
+        handleOpenModal(newCoupon, initialCode);
+    }
+
+    const handleScanComplete = (result: string) => {
+        // The result is the raw string from the QR code, which we'll use as the code
+        setIsScannerOpen(false);
+        handleCreateNew(result.trim());
     }
 
     const handleModalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,6 +83,8 @@ export default function CouponManagementView() {
 
         // We only send back code and points, as 'redeemed' is set by the system on use.
         const data: Partial<PocketBaseCoupon> = {
+            // Use couponCodeInput from state for submission if you want to use it
+            // but for simplicity and to respect the form data, we'll use formData
             code: formData.get('code') as string,
             points: parseInt(formData.get('points') as string, 10),
         };
@@ -73,9 +94,9 @@ export default function CouponManagementView() {
 
     const getUsesBadge = (status: Coupon['usesStatus']) => {
         switch (status) {
-            case 'redeemed': return <span className="badge badge-error">Redeemed (Single Use)</span>;
+            case 'redeemed': return <span className="badge badge-error">Redeemed</span>;
             case 'available':
-            default: return <span className="badge badge-success">Available (Single Use)</span>;
+            default: return <span className="badge badge-success">Available</span>;
         }
     }
 
@@ -83,9 +104,15 @@ export default function CouponManagementView() {
         <div className="space-y-6">
             <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                 <h1 className="text-3xl font-bold hidden lg:block">Coupon Management 🎫</h1>
-                <button className="btn btn-primary gap-2" onClick={handleCreateNew}>
-                    <Plus size={18} /> Create New Coupon
-                </button>
+                <div className="flex gap-2">
+                    {/* New button to open the scanner */}
+                    <button className="btn btn-secondary gap-2" onClick={() => setIsScannerOpen(true)}>
+                        <QrCode size={18} /> Scan QR Code
+                    </button>
+                    <button className="btn btn-primary gap-2" onClick={() => handleCreateNew()}>
+                        <Plus size={18} /> Create New Coupon
+                    </button>
+                </div>
             </div>
 
             <div className="card bg-base-100 shadow-xl">
@@ -160,14 +187,27 @@ export default function CouponManagementView() {
                     </h3>
                     {(couponMutate.isPending || couponMutate.isSuccess || couponMutate.isError) && (
                         <div className={`alert ${couponMutate.isSuccess ? 'alert-success' : couponMutate.isError ? 'alert-error' : 'alert-info'} my-2`}>
-                            {couponMutate.isSuccess ? 'Coupon saved successfully!' : couponMutate.isError ? `Error: ${couponMutate.error.message}` : 'Saving changes...'}
+                            {couponMutate.isSuccess
+                                ? 'Coupon saved successfully! Closing...'
+                                : couponMutate.isError
+                                    ? `Error: ${(couponMutate.error as Error).message}`
+                                    : 'Saving changes...'
+                            }
                         </div>
                     )}
                     {selectedCoupon && (
                         <form onSubmit={handleModalSubmit} className="space-y-4 pt-4">
                             <div className="form-control">
                                 <label className="label"><span className="label-text">Coupon Code</span></label>
-                                <input type="text" name="code" defaultValue={selectedCoupon.code} className="input input-bordered font-mono w-full" required />
+                                <input
+                                    type="text"
+                                    name="code"
+                                    defaultValue={selectedCoupon.code}
+                                    className="input input-bordered font-mono w-full"
+                                    required
+                                    // Handle manual input change to keep local state updated
+                                    onChange={(e) => setCouponCodeInput(e.target.value)}
+                                />
                             </div>
                             <div className="form-control">
                                 <label className="label"><span className="label-text">Points Value</span></label>
@@ -175,10 +215,10 @@ export default function CouponManagementView() {
                             </div>
                             {/* Removed fields for usesLeft/expiryDate to match provided API response structure */}
                             <div className="alert alert-info shadow-lg text-sm">
-                                This coupon will be marked as **single-use** (redeemed: true) after the first successful redemption via the API.
+                                The coupon code must be unique. Points value must be at least 1.
                             </div>
                             <div className="modal-action">
-                                <button type="button" className="btn btn-ghost" onClick={() => (document.getElementById('coupon_edit_modal') as HTMLDialogElement)?.close()}>
+                                <button type="button" className="btn btn-ghost" onClick={() => closeModal('coupon_edit_modal')}>
                                     Cancel
                                 </button>
                                 <button className="btn btn-primary" type="submit" disabled={couponMutate.isPending}>
@@ -189,9 +229,20 @@ export default function CouponManagementView() {
                     )}
                 </div>
                 <form method="dialog" className="modal-backdrop">
-                    <button>close</button>
+                    <button onClick={() => {
+                        setSelectedCoupon(null);
+                        setCouponCodeInput('');
+                    }}>close</button>
                 </form>
             </dialog>
+
+            {/* Render the QR Scanner Modal conditionally */}
+            {isScannerOpen && (
+                <QRScannerModal
+                    onClose={() => setIsScannerOpen(false)}
+                    onScan={handleScanComplete}
+                />
+            )}
         </div>
     );
 }

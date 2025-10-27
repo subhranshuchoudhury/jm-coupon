@@ -1,15 +1,42 @@
 "use client";
-import { manualPointGrant } from "@/apis/api";
+import { manualPointGrant, updateUser } from "@/apis/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QrCode } from "lucide-react";
 import { useState } from "react";
+import QRScannerModal from "../../QRScannerModal";
+// Import the new modal component
+
+// Define the expected structure of the QR code data
+interface ScannedData {
+    code: string;
+    points: number;
+    userId: string;
+}
 
 export default function ScanCouponView() {
     const [couponCode, setCouponCode] = useState('');
     const [points, setPoints] = useState(0);
     const [userId, setUserId] = useState('');
     const [message, setMessage] = useState('');
+    // State to control the visibility of the scanner modal
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
+
     const queryClient = useQueryClient();
+
+    const userUpdateMutation = useMutation({
+        mutationFn: updateUser,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            queryClient.invalidateQueries({ queryKey: ['allRedeemRequestsForCount'] });
+            (document.getElementById('user_edit_modal') as HTMLDialogElement)?.close();
+
+            manualPointsMutation.mutate({
+                userId,
+                points,
+                code: couponCode,
+            });
+        },
+    });
 
     // Mutation for manual point injection (using the new manualPointGrant function)
     const manualPointsMutation = useMutation({
@@ -35,17 +62,53 @@ export default function ScanCouponView() {
             return;
         }
 
-        manualPointsMutation.mutate({
-            userId,
-            points,
-            code: couponCode,
-        });
+        //@ts-ignore
+        userUpdateMutation.mutate({ id: userId, data: { "total_points+": points } });
+
+    };
+
+    // Function to handle the data once a QR code is scanned
+    const handleScanResult = (result: string) => {
+        try {
+            // Attempt to parse the QR code data as JSON
+            const data: string = (result);
+
+            if (data) {
+                setCouponCode(data);
+            } else {
+                setMessage('Error: Scanned QR code data is incomplete or invalid.');
+            }
+        } catch (error) {
+            setMessage('Error: Scanned data is not in the expected format (JSON).');
+            console.error('Failed to parse QR data:', error);
+        }
     };
 
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold mb-6 hidden lg:block">Scan or Enter Coupon 🔑</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                {/* QR Scanner Integration */}
+                <div className="card bg-base-100 shadow-xl">
+                    <div className="card-body">
+                        <h2 className="card-title text-2xl">QR Code Scanner (Mobile)</h2>
+                        <p className="text-sm text-base-content/70">Use this on a mobile device to quickly scan a QR code with coupon details.</p>
+                        <div className="flex flex-col items-center justify-center min-h-64 rounded-lg bg-base-200 border border-dashed border-base-content/30 mt-4 p-4">
+                            <QrCode size={64} className="text-base-content/30" />
+                            <p className="text-base-content/60 mt-4 text-center">
+                                Tap the button below to start the camera and scan a QR code.
+                            </p>
+                            {/* Button to open the scanner modal */}
+                            <button
+                                className="btn btn-accent mt-6"
+                                onClick={() => setIsScannerOpen(true)} // Open the modal
+                            >
+                                Start Camera
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Manual Entry */}
                 <div className="card bg-base-100 shadow-xl">
@@ -102,24 +165,15 @@ export default function ScanCouponView() {
                         </form>
                     </div>
                 </div>
-
-                {/* QR Scanner Placeholder */}
-                <div className="card bg-base-100 shadow-xl">
-                    <div className="card-body">
-                        <h2 className="card-title text-2xl">QR Code Scanner (Mobile)</h2>
-                        <p className="text-sm text-base-content/70">Use this on a mobile device to quickly scan and apply physical coupons or QR codes generated from the system.</p>
-                        <div className="flex flex-col items-center justify-center min-h-64 rounded-lg bg-base-200 border border-dashed border-base-content/30 mt-4 p-4">
-                            <QrCode size={64} className="text-base-content/30" />
-                            <p className="text-base-content/60 mt-4 text-center">
-                                Integration with a library like `react-qr-reader` is required here.
-                            </p>
-                            <button className="btn btn-accent mt-6" disabled>
-                                Start Camera
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
+
+            {/* Conditionally render the QR Scanner Modal */}
+            {isScannerOpen && (
+                <QRScannerModal
+                    onClose={() => setIsScannerOpen(false)} // Close function
+                    onScan={handleScanResult} // Handler for successful scan
+                />
+            )}
         </div>
     );
 }
