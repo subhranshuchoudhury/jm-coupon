@@ -1,6 +1,6 @@
 "use client"; // Assuming Next.js App Router
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Gift, Sparkles,
   Coffee,
@@ -120,8 +120,20 @@ function App() {
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
   // --- New state for redemption form ---
-  const [upiId, setUpiId] = useState(profile?.upi_id || '');
-  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [upiId, setUpiId] = useState('');
+  const [fullName, setFullName] = useState('');
+
+
+  // Populate UPI ID and Full Name from profile on load
+  useEffect(() => {
+    if (profile && profile.upi_id) {
+      setUpiId(profile.upi_id);
+    }
+    if (profile && profile.full_name) {
+      setFullName(profile.full_name);
+    }
+  }, [profile]);
+
 
   // --- REMOVED `redeemRequests` state ---
 

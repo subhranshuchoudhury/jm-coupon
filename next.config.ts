@@ -7,14 +7,7 @@ const withPWA = withPWAInit({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: isDev, // 👈 disables PWA in dev, fixes the warning
-  fallbacks: {
-    document: '/offline.html',
-    audio: '',
-    video: '',
-    image: '',
-    font: '',
-  }
+  disable: isDev,
 });
 
 const nextConfig = withPWA({
