@@ -3,18 +3,65 @@
     "short_name": "JM Rewards",
     "version": "0.1.0",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#000000",
     "description": "An app to manage and redeem coupons for Jyeshtha Motors.",
+    "categories": [
+        "business",
+        "shopping"
+    ],
+    "shortcuts": [
+        {
+            "name": "Home",
+            "short_name": "Home",
+            "description": "Go to the home dashboard.",
+            "url": "/",
+            "icons": [
+                {
+                    "src": "/icons/home_96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Admin Dashboard",
+            "short_name": "Admin",
+            "description": "Access the administrator control panel.",
+            "url": "/admin",
+            "icons": [
+                {
+                    "src": "/icons/admin_96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshots/home_wide.png",
+            "sizes": "1280x800",
+            "type": "image/png",
+            "platform": "wide",
+            "label": "Home Dashboard on Desktop"
+        },
+        {
+            "src": "/screenshots/home_narrow.png",
+            "sizes": "640x1136",
+            "type": "image/png",
+            "platform": "narrow",
+            "label": "Home Dashboard on Desktop"
+        }
+    ],
     "icons": [
         {
-            "src": "/icons/jm_192.png",
+            "src": "/icons/jm_logo_192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/icons/jm_512.png",
+            "src": "/icons/jm_logo_512.png",
             "sizes": "512x512",
             "type": "image/png"
         }
