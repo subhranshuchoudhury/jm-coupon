@@ -128,7 +128,7 @@ export default function CouponManagementView() {
                                     <tr className="border-b border-base-content/10">
                                         <th>Code</th>
                                         <th className="text-right">Points Value</th>
-                                        <th>Status (Simplified)</th>
+                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>

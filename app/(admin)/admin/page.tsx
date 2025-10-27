@@ -7,7 +7,8 @@ import {
     Gift,
     Ticket,
     QrCode,
-    Menu, UserCircle
+    Menu, UserCircle,
+    LogOut
 } from 'lucide-react';
 import {
     useQuery
@@ -22,11 +23,14 @@ import UserManagementView from '@/app/components/admin/view/UserManagementView';
 import ScanCouponView from '@/app/components/admin/view/ScanCouponView';
 import CouponManagementView from '@/app/components/admin/view/CouponManagementView';
 import RedeemRequestView from '@/app/components/admin/view/RedeemRequestView';
+import { deleteCookie } from 'cookies-next';
+import { useRouter } from 'next/navigation';
 
 
 // --- APP BAR COMPONENT (To include profile image) ---
 function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: AdminView, viewTitles: Record<AdminView, string>, toggleDrawer: () => void }) {
     const { profile } = useProfileStore(); // Use the mock/actual store
+    const router = useRouter();
 
     // Construct the actual avatar URL for the current admin user
     const avatarUrl = useMemo(() => {
@@ -66,9 +70,22 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
                         </div>
                     </label>
                     <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-1 p-2 shadow bg-base-200 rounded-box w-52">
-                        <li><a>Profile (Not implemented)</a></li>
-                        <li><a>Settings (Not implemented)</a></li>
-                        <li><a>Logout (Not implemented)</a></li>
+                        {/* <li><a>Profile (Not implemented)</a></li>
+                        <li><a>Settings (Not implemented)</a></li> */}
+                        <li>
+                            <button
+                                className="btn btn-outline btn-error"
+                                onClick={() => {
+                                    pb.authStore.clear();
+                                    deleteCookie('pb_auth');
+                                    deleteCookie('role');
+                                    router.refresh();
+                                }}
+                            >
+                                <LogOut size={18} className="mr-2" />
+                                Logout
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
