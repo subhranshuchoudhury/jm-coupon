@@ -3,7 +3,7 @@
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2, QrCode } from "lucide-react"; // Import QrCode icon
+import { Edit, Plus, Trash2, QrCode } from "lucide-react";
 import { useState } from "react";
 import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
@@ -16,9 +16,7 @@ export default function CouponManagementView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
-    // New state for QR scanner
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    // New state to hold the code entered via manual entry or scan
     const [couponCodeInput, setCouponCodeInput] = useState<string>('');
 
 
@@ -49,8 +47,9 @@ export default function CouponManagementView() {
     });
 
     const handleOpenModal = (coupon: Coupon, initialCode = '') => {
-        couponMutate.reset(); // Key change: Clear previous status
+        couponMutate.reset();
         setSelectedCoupon(coupon);
+        // Use initialCode for new, or existing code for edit
         setCouponCodeInput(initialCode || coupon.code);
         showModal('coupon_edit_modal');
     }
@@ -71,8 +70,8 @@ export default function CouponManagementView() {
     }
 
     const handleScanComplete = (result: string) => {
-        // The result is the raw string from the QR code, which we'll use as the code
         setIsScannerOpen(false);
+        // Ensure the form gets the trimmed code immediately when the modal opens
         handleCreateNew(result.trim());
     }
 
@@ -81,11 +80,9 @@ export default function CouponManagementView() {
         if (!selectedCoupon) return;
         const formData = new FormData(e.currentTarget);
 
-        // We only send back code and points, as 'redeemed' is set by the system on use.
         const data: Partial<PocketBaseCoupon> = {
-            // Use couponCodeInput from state for submission if you want to use it
-            // but for simplicity and to respect the form data, we'll use formData
-            code: formData.get('code') as string,
+            // Use couponCodeInput from state for the most up-to-date value
+            code: couponCodeInput,
             points: parseInt(formData.get('points') as string, 10),
         };
 
@@ -105,7 +102,6 @@ export default function CouponManagementView() {
             <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                 <h1 className="text-3xl font-bold hidden lg:block">Coupon Management 🎫</h1>
                 <div className="flex gap-2">
-                    {/* New button to open the scanner */}
                     <button className="btn btn-secondary gap-2" onClick={() => setIsScannerOpen(true)}>
                         <QrCode size={18} /> Scan QR Code
                     </button>
@@ -114,6 +110,8 @@ export default function CouponManagementView() {
                     </button>
                 </div>
             </div>
+
+            {/* ... (rest of the table view remains the same) ... */}
 
             <div className="card bg-base-100 shadow-xl">
                 <div className="card-body p-0">
@@ -202,7 +200,8 @@ export default function CouponManagementView() {
                                 <input
                                     type="text"
                                     name="code"
-                                    defaultValue={selectedCoupon.code}
+                                    // FIX 2: Use 'value' to make this a controlled component
+                                    value={couponCodeInput}
                                     className="input input-bordered font-mono w-full"
                                     required
                                     // Handle manual input change to keep local state updated
@@ -213,12 +212,16 @@ export default function CouponManagementView() {
                                 <label className="label"><span className="label-text">Points Value</span></label>
                                 <input type="number" name="points" defaultValue={selectedCoupon.points} className="input input-bordered w-full" required min="1" />
                             </div>
-                            {/* Removed fields for usesLeft/expiryDate to match provided API response structure */}
                             <div className="alert alert-info shadow-lg text-sm">
                                 The coupon code must be unique. Points value must be at least 1.
                             </div>
                             <div className="modal-action">
-                                <button type="button" className="btn btn-ghost" onClick={() => closeModal('coupon_edit_modal')}>
+                                {/* FIX 1: Add state cleanup to the Cancel button */}
+                                <button type="button" className="btn btn-ghost" onClick={() => {
+                                    closeModal('coupon_edit_modal');
+                                    setSelectedCoupon(null);
+                                    setCouponCodeInput('');
+                                }}>
                                     Cancel
                                 </button>
                                 <button className="btn btn-primary" type="submit" disabled={couponMutate.isPending}>
@@ -228,6 +231,7 @@ export default function CouponManagementView() {
                         </form>
                     )}
                 </div>
+                {/* The backdrop button already has the necessary cleanup */}
                 <form method="dialog" className="modal-backdrop">
                     <button onClick={() => {
                         setSelectedCoupon(null);
