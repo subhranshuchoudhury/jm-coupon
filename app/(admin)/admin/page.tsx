@@ -178,7 +178,7 @@ function Admin() {
                         <li>
                             <a onClick={() => handleSetView('scan')} className={activeView === 'scan' ? 'active font-semibold' : ''}>
                                 <QrCode size={18} />
-                                Scan Coupon (Mechanics)
+                                Scan Coupon (Users)
                             </a>
                         </li>
                     </ul>
