@@ -237,7 +237,7 @@ export default function UserManagementView() {
                                                 {/* Fallback for null/undefined phone */}
                                                 {(user as any).phone || 'N/A'}
                                                 {/* Only show copy button if phone exists */}
-                                                {(user as any).phone && (
+                                                {(user as any).phone ? (
                                                     <button
                                                         className="btn btn-xs btn-ghost btn-circle"
                                                         title="Copy Phone"
@@ -245,7 +245,7 @@ export default function UserManagementView() {
                                                     >
                                                         <Copy size={12} />
                                                     </button>
-                                                )}
+                                                ) : null}
                                             </td>
                                             <td className="font-mono text-right font-semibold">{user.total_points.toLocaleString()}</td>
                                             <td>
