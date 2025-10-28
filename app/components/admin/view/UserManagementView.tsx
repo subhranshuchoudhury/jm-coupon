@@ -28,6 +28,9 @@ export default function UserManagementView() {
         queryKey: ['users', currentPage, debouncedSearchTerm, searchField],
         queryFn: () => fetchUsers(currentPage, debouncedSearchTerm, searchField),
         placeholderData: keepPreviousData,
+        refetchInterval: 10000,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true
     });
 
     // Reset page when debounced search term changes
