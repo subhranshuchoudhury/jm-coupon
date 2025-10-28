@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Gift, Sparkles,
-  Coffee,
-  Ticket, X, LogOut
+  Sparkles, Ticket, X, LogOut,
+  User, Phone, ShieldUser
 } from 'lucide-react';
 // --- New Import for QR Scanner ---
 import pb from '@/lib/pocketbase';
@@ -16,7 +15,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import RedeemModalContent from './components/RedeemModalContent';
 import { RedeemRequest, Reward } from './types';
 import HomePage from './components/HomePage';
-import Image from 'next/image';
 
 // --- MOCK DATA (Only for rewards, as no API was provided for it) ---
 const mockRewards = [
@@ -124,6 +122,9 @@ function App() {
   const [upiId, setUpiId] = useState('');
   const [fullName, setFullName] = useState('');
 
+  // --- NEW: State for phone number prompt ---
+  const [phoneInput, setPhoneInput] = useState('');
+
 
   // Populate UPI ID and Full Name from profile on load
   useEffect(() => {
@@ -133,8 +134,25 @@ function App() {
     if (profile && profile.full_name) {
       setFullName(profile.full_name);
     }
+    // NEW: Populate phone input if available
+    if (profile && profile.phone) {
+      setPhoneInput(profile.phone);
+    }
   }, [profile]);
 
+
+  // --- NEW: Effect to check for missing phone and open modal ---
+  useEffect(() => {
+    // Check if the user is logged in (profile exists) AND phone is falsy (null, '', 0, etc.)
+    if (profile && !profile.phone) {
+      // The modal should only open automatically once.
+      // We use a safe check to ensure the DOM element exists before calling showModal
+      const phoneModal = document.getElementById('phone_prompt_modal') as HTMLDialogElement;
+      if (phoneModal) {
+        phoneModal.showModal();
+      }
+    }
+  }, [profile]); // Rerun whenever the profile object changes
 
   // --- REMOVED `redeemRequests` state ---
 
@@ -162,7 +180,7 @@ function App() {
     refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
-  // --- NEW: Mutation for creating a Redeem Request ---
+  // --- NEW: Mutation for creating a Redeem Request (existing logic) ---
   const createRedeemRequestApi = async (data: {
     reward: Reward;
     upi: string;
@@ -175,6 +193,7 @@ function App() {
       full_name: data.name || '',
     };
 
+    // Assuming the user is authenticated, the request should handle the user context
     const record = await pb.send("/api/v1/redeem", {
       method: "POST",
       body: JSON.stringify(apiData),
@@ -190,19 +209,17 @@ function App() {
     onSuccess: () => {
       showAlert(`Successfully submitted request for "${selectedReward!.title}"!`);
 
+      // Optimistic update of profile points and form fields in store
       updateProfile({
         total_points: profile!.total_points - selectedReward!.points,
         full_name: fullName,
         upi_id: upiId,
       })
 
-      // Refetch data
+      // Invalidate queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['redeemRequests', profile!.uid] });
       queryClient.invalidateQueries({ queryKey: ['userProfile', profile!.uid] }); // To update points
       queryClient.invalidateQueries({ queryKey: ['transactions', profile!.uid] });
-
-      // We don't need to refetch transactions, as the redeem request
-      // itself doesn't create a transaction. A backend process will.
 
       // Close modals
       (
@@ -214,8 +231,6 @@ function App() {
 
       // Clear state
       setSelectedReward(null);
-      // setUpiId('');
-      // setFullName('');
     },
     onError: (error: any) => {
       const errorMessage =
@@ -225,10 +240,73 @@ function App() {
   }
   );
 
+  // --- NEW: Mutation for updating the user's phone number ---
+  const updatePhoneApi = async (newPhone: string) => {
+    if (!profile?.uid) throw new Error("User ID is missing.");
+    const updateData = {
+      "phone": newPhone,
+    };
+    // Assuming the authenticated user can update their own record in 'users' collection
+    const record = await pb.collection('users').update(profile.uid, updateData);
+    return record;
+  };
+
+  const { mutate: updatePhoneMutation, isPending: isUpdatingPhone } = useMutation({
+    mutationFn: updatePhoneApi,
+    onSuccess: (data: any) => {
+      // Update the local store with the new phone number
+      updateProfile({
+        phone: data.phone, // Assuming API response has the new phone field
+      });
+
+      // Close the modal
+      (document.getElementById('phone_prompt_modal') as HTMLDialogElement)?.close();
+
+      showAlert('Phone number successfully updated!');
+
+      // Clear input state
+      // setPhoneInput(''); // Keep the updated value in state
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.data?.message || error.message || 'An unknown error occurred while updating.';
+      showAlert(`Update failed: ${errorMessage}`);
+    },
+  });
+
+  // --- Handler for phone number update submission ---
+  const handlePhoneUpdate = () => {
+    if (isUpdatingPhone) return;
+
+    // Validation: Check for 10 digits
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(phoneInput.trim())) {
+      showAlert('Please enter a valid 10-digit phone number.');
+      return;
+    }
+
+    // Call the mutation
+    updatePhoneMutation(phoneInput.trim());
+  };
+
   // --- Redemption Logic ---
 
   // 1. When a reward is clicked in the modal
   const handleRedeemClick = (reward: Reward) => {
+    // --- NEW: Pre-redemption check for phone number ---
+    if (!profile?.phone) {
+      showAlert('Please complete your profile by providing your phone number before redeeming a reward.');
+      // Open the phone prompt modal
+      const phoneModal = document.getElementById('phone_prompt_modal') as HTMLDialogElement;
+      if (phoneModal) {
+        // Reset the input state to the current profile value (if any) or empty string
+        setPhoneInput(profile?.phone || '');
+        phoneModal.showModal();
+      }
+      return; // Stop redemption flow
+    }
+    // --- End NEW Check ---
+
     setSelectedReward(reward);
     (
       document.getElementById('redeem_confirm_modal') as HTMLDialogElement
@@ -263,9 +341,6 @@ function App() {
   // 3. When user cancels confirmation
   const handleRedemptionCancel = () => {
     setSelectedReward(null);
-    // --- Clear form state on cancel ---
-    // setUpiId('');
-    // setFullName('');
   };
 
   // --- Modal Opening ---
@@ -291,7 +366,7 @@ function App() {
 
       {/* --- GLOBAL MODALS --- */}
 
-      {/* Notification Modal */}
+      {/* Notification Modal (Unchanged) */}
       <dialog id="notification_modal" className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg">Notifications</h3>
@@ -305,24 +380,6 @@ function App() {
                 </p>
               </div>
             </div>
-            {/* <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
-              <Coffee size={20} className="text-success mt-1 shrink-0" />
-              <div>
-                <p className="font-semibold">Redemption Successful</p>
-                <p className="text-sm text-base-content/80">
-                  Your 'Free Coffee' reward has been redeemed.
-                </p>
-              </div>
-            </div> */}
-            {/* <div className="flex items-start p-3 bg-base-200 rounded-lg gap-3">
-              <Gift size={20} className="text-accent mt-1 shrink-0" />
-              <div>
-                <p className="font-semibold">New Reward Available</p>
-                <p className="text-sm text-base-content/80">
-                  Complete your profile to earn 50 extra points!
-                </p>
-              </div>
-            </div> */}
           </div>
           <div className="modal-action">
             <form method="dialog">
@@ -335,7 +392,7 @@ function App() {
         </form>
       </dialog>
 
-      {/* Global Alert Modal */}
+      {/* Global Alert Modal (Unchanged) */}
       <dialog id="alert_modal" className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg">Alert</h3>
@@ -351,7 +408,7 @@ function App() {
         </form>
       </dialog>
 
-      {/* Profile Modal */}
+      {/* Profile Modal (Unchanged) */}
       <dialog id="profile_modal" className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg">Profile</h3>
@@ -362,24 +419,33 @@ function App() {
               <div className="bg-neutral text-neutral-content rounded-full w-24">
                 {/* <User size={48} /> */}
                 {
-                  profile?.avatar && (<img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`} />)
+                  profile?.avatar ? (<img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`} />) : (<User size={48} />)
                 }
 
               </div>
             </div>
             <p className="text-xl font-semibold">{profile?.name}</p>
             <p className="text-base-content/70">{profile?.email}</p>
+            {profile?.phone && <p className="text-base-content/70 flex items-center gap-1 mt-1"><Phone size={14} />{profile.phone}</p>}
           </div>
 
           {/* Action Buttons */}
+          {
+            profile?.role === 'admin' && (
+              <div className="space-y-2 mb-2">
+                <button
+                  className="btn btn-info btn-outline w-full"
+                  onClick={() => {
+                    router.push("/admin");
+                  }}
+                >
+                  <ShieldUser size={18} className="mr-2" />
+                  Admin Dashboard
+                </button>
+              </div>
+            )
+          }
           <div className="space-y-2">
-            {/* <button
-              className="btn btn-outline w-full"
-              onClick={() => showAlert('Refreshing data... (Simulation)')}
-            >
-              <RefreshCw size={18} className="mr-2" />
-              Refresh Data
-            </button> */}
             <button
               className="btn btn-outline btn-error w-full"
               onClick={() => {
@@ -405,7 +471,63 @@ function App() {
         </form>
       </dialog>
 
-      {/* Redeem Page Modal */}
+      {/* --- NEW: Phone Number Prompt Modal --- */}
+      <dialog id="phone_prompt_modal" className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg text-warning flex items-center gap-2">
+            <Phone size={24} />
+            Important: Phone Number Required
+          </h3>
+          <p className="py-4">
+            To proceed with redemptions and ensure delivery of your rewards, please provide your **10-digit mobile number**.
+          </p>
+
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text">Mobile Number (10 digits)</span>
+              <span className="label-text-alt text-error">* Required</span>
+            </label>
+            <input
+              type="tel" // Use tel for mobile numbers
+              placeholder="e.g., 9876543210"
+              className="input input-bordered w-full"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))} // Allow only digits and limit to 10
+              disabled={isUpdatingPhone}
+              maxLength={10}
+            />
+          </div>
+
+          <div className="modal-action mt-4">
+            {/* The primary button calls the handler */}
+            <button
+              className="btn btn-primary"
+              onClick={handlePhoneUpdate}
+              disabled={isUpdatingPhone}
+            >
+              {isUpdatingPhone ? (
+                <span className="loading loading-spinner"></span>
+              ) : (
+                'Save Phone Number'
+              )}
+            </button>
+            {/* Conditional Close button (only show if profile.phone exists, otherwise user MUST enter it) */}
+            {profile?.phone && (
+              <form method="dialog">
+                <button className="btn btn-ghost" disabled={isUpdatingPhone}>
+                  Cancel
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+        {/* Backdrop only closes if profile.phone exists */}
+        <form method="dialog" className="modal-backdrop">
+          {profile?.phone && <button>close</button>}
+        </form>
+      </dialog>
+
+      {/* Redeem Page Modal (Unchanged) */}
       <dialog id="redeem_page_modal" className="modal">
         <div className="modal-box max-w-md w-full p-0">
           {/* Modal Header with Close Button */}
@@ -430,7 +552,7 @@ function App() {
         </form>
       </dialog>
 
-      {/* Redeem Confirmation Modal */}
+      {/* Redeem Confirmation Modal (Unchanged form fields and logic) */}
       <dialog id="redeem_confirm_modal" className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg">Confirm Redemption</h3>
@@ -464,7 +586,6 @@ function App() {
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
                 disabled={isRedeeming} // Disable on loading
-              // defaultValue={profile?.upi_id}
               />
             </div>
             <div className="form-control w-full">
@@ -479,7 +600,6 @@ function App() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 disabled={isRedeeming} // Disable on loading
-              // defaultValue={profile?.full_name}
               />
             </div>
           </div>

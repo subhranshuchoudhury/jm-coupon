@@ -46,7 +46,7 @@ export default function SignInForm() {
                     name: record.name,
                     token: pb.authStore.token,
                     username: record.id,
-                    mobile: record.mobile,
+                    phone: record.phone,
                     role: record.role,
                     total_points: record.total_points || 0,
                 });

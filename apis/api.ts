@@ -7,7 +7,7 @@ const PER_PAGE = 10;
 export const fetchUsers = async (
     page: number,
     searchTerm?: string,
-    searchField?: 'name' | 'id' | 'email'
+    searchField?: 'name' | 'id' | 'email' | 'phone'
 ): Promise<PaginatedResult<User> & { searchTermUsed: string | undefined }> => {
 
     let filter = '';
@@ -15,7 +15,7 @@ export const fetchUsers = async (
 
     if (term) {
         // PocketBase filter syntax
-        if (searchField === 'name' || searchField === 'email') {
+        if (searchField === 'name' || searchField === 'email' || searchField === 'phone') {
             // Use '~' for partial, case-insensitive matching
             filter = `${searchField} ~ '${term}'`;
         } else if (searchField === 'id') {
@@ -39,6 +39,7 @@ export const fetchUsers = async (
         role: item.role || 'user',
         avatar: item.avatar,
         avatarCollectionId: item.collectionId,
+        phone: item.phone,
     }));
 
     return {

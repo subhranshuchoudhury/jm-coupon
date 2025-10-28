@@ -9,7 +9,7 @@ import UserAvatar from "../UserAvatar";
 import useDebounce from "@/hooks/useDebounce"; // Assuming this is correctly implemented
 
 // Define Search Fields
-type SearchField = 'name' | 'id' | 'email';
+type SearchField = 'name' | 'id' | 'email' | 'phone';
 
 export default function UserManagementView() {
     const queryClient = useQueryClient();
@@ -35,6 +35,7 @@ export default function UserManagementView() {
         setCurrentPage(1);
     }
 
+
     // Mutation for updating user
     const userUpdateMutation = useMutation({
         mutationFn: updateUser,
@@ -42,6 +43,7 @@ export default function UserManagementView() {
             queryClient.invalidateQueries({ queryKey: ['users'] });
             queryClient.invalidateQueries({ queryKey: ['allRedeemRequestsForCount'] });
             (document.getElementById('user_edit_modal') as HTMLDialogElement)?.close();
+            setSelectedUser(null); // Clear selected user after successful update
             setToast({ message: 'User updated successfully!', type: 'success' });
             setTimeout(() => setToast(null), 3000);
         },
@@ -66,9 +68,26 @@ export default function UserManagementView() {
     });
 
     // --- Handlers ---
+
+    // Function to reset the modal state and the mutation status
+    const resetModalState = () => {
+        // Clear the form data and selected user
+        setSelectedUser(null);
+        // Reset the mutation state to clear any lingering success/error messages
+        userUpdateMutation.reset();
+    }
+
     const handleEditClick = (user: User) => {
+        // 1. Reset state to ensure fresh data in the modal
+        resetModalState();
+        // 2. Set the new user
         setSelectedUser(user);
-        (document.getElementById('user_edit_modal') as HTMLDialogElement)?.showModal();
+        // 3. Open the modal
+        // Note: Using a timeout to ensure the state updates (setting selectedUser) are processed
+        // before the modal reads the state for its content, preventing the old data flash.
+        setTimeout(() => {
+            (document.getElementById('user_edit_modal') as HTMLDialogElement)?.showModal();
+        }, 10);
     };
 
     const handleDeleteClick = (user: User) => {
@@ -103,6 +122,7 @@ export default function UserManagementView() {
         const data: Partial<PocketBaseUser> = {
             name: formData.get('name') as string,
             email: formData.get('email') as string,
+            phone: formData.get('phone') as string,
             total_points: parseInt(formData.get('total_points') as string, 10),
             role: formData.get('role') as 'user' | 'admin',
         };
@@ -113,6 +133,7 @@ export default function UserManagementView() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold mb-6 hidden lg:block">User Management 👥</h1>
+            {/*  */}
 
             {/* Toast Notification */}
             {toast && (
@@ -148,6 +169,7 @@ export default function UserManagementView() {
                 >
                     <option value="name">Search Name</option>
                     <option value="email">Search Email</option>
+                    <option value="phone">Search Phone</option>
                     <option value="id">Search User ID</option>
                 </select>
             </div>
@@ -170,6 +192,7 @@ export default function UserManagementView() {
                                     <tr className="border-b border-base-content/10">
                                         <th>Name / ID</th>
                                         <th>Email</th>
+                                        <th>Phone</th> {/* New Header */}
                                         <th className="text-right">Total Points</th>
                                         <th>Role</th>
                                         <th className="w-1/6 text-center">Actions</th>
@@ -180,6 +203,7 @@ export default function UserManagementView() {
                                         <tr key={user.id} className="hover">
                                             <td>
                                                 <div className="flex items-center gap-3">
+                                                    {/* Assuming UserAvatar component exists and works */}
                                                     <UserAvatar user={user} size={48} />
                                                     <div>
                                                         <div className="font-bold">{user.name}</div>
@@ -196,7 +220,7 @@ export default function UserManagementView() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="flex items-center gap-1 pt-6">
+                                            <td>
                                                 {user.email}
                                                 <button
                                                     className="btn btn-xs btn-ghost btn-circle"
@@ -205,6 +229,20 @@ export default function UserManagementView() {
                                                 >
                                                     <Copy size={12} />
                                                 </button>
+                                            </td>
+                                            <td> {/* New Field */}
+                                                {/* Fallback for null/undefined phone */}
+                                                {(user as any).phone || 'N/A'}
+                                                {/* Only show copy button if phone exists */}
+                                                {(user as any).phone && (
+                                                    <button
+                                                        className="btn btn-xs btn-ghost btn-circle"
+                                                        title="Copy Phone"
+                                                        onClick={() => handleCopy((user as any).phone, 'Phone')}
+                                                    >
+                                                        <Copy size={12} />
+                                                    </button>
+                                                )}
                                             </td>
                                             <td className="font-mono text-right font-semibold">{user.total_points.toLocaleString()}</td>
                                             <td>
@@ -250,15 +288,12 @@ export default function UserManagementView() {
             </div>
 
             {/* User Edit Modal */}
+            {/* The selectedUser check is moved inside to ensure the modal content is only rendered when a user is selected */}
             <dialog id="user_edit_modal" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg">Edit User: {selectedUser?.name}</h3>
-                    {(userUpdateMutation.isPending || userUpdateMutation.isSuccess || userUpdateMutation.isError) && (
-                        <div className={`alert ${userUpdateMutation.isSuccess ? 'alert-success' : userUpdateMutation.isError ? 'alert-error' : 'alert-info'} my-2`}>
-                            {userUpdateMutation.isSuccess ? 'User updated successfully!' : userUpdateMutation.isError ? `Error: ${userUpdateMutation.error.message}` : 'Saving changes...'}
-                        </div>
-                    )}
-                    {selectedUser && (
+                    {/* The in-modal alert/toast display is removed as the component-level toast handles success/error */}
+                    {selectedUser ? (
                         <form onSubmit={handleModalSubmit} className="space-y-4 pt-4">
                             <p className="text-sm flex items-center gap-2">
                                 <strong>User ID:</strong> <span className="font-mono">{selectedUser.id}</span>
@@ -290,6 +325,25 @@ export default function UserManagementView() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* New Phone Field */}
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Phone</span></label>
+                                <div className="flex items-center gap-2">
+                                    {/* Cast to any to handle the new field that might not be in the current User type without modifying your type file */}
+                                    <input type="text" name="phone" defaultValue={(selectedUser as any).phone || ''} className="input input-bordered w-full" />
+                                    <button
+                                        type="button"
+                                        className="btn btn-square btn-ghost"
+                                        title="Copy Phone"
+                                        onClick={() => handleCopy((selectedUser as any).phone, 'Phone')}
+                                        disabled={!(selectedUser as any).phone}
+                                    >
+                                        <Copy size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="form-control">
                                 <label className="label"><span className="label-text">Total Points</span></label>
                                 <input type="number" name="total_points" defaultValue={selectedUser.total_points} className="input input-bordered w-full" required min="0" />
@@ -302,17 +356,29 @@ export default function UserManagementView() {
                                 </select>
                             </div>
                             <div className="modal-action">
-                                <button type="button" className="btn btn-ghost" onClick={() => (document.getElementById('user_edit_modal') as HTMLDialogElement)?.close()}>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    onClick={() => {
+                                        (document.getElementById('user_edit_modal') as HTMLDialogElement)?.close();
+                                        // Reset state when closing via cancel button as well
+                                        resetModalState();
+                                    }}
+                                >
                                     Cancel
                                 </button>
                                 <button className="btn btn-primary" type="submit" disabled={userUpdateMutation.isPending}>
-                                    Save Changes
+                                    {userUpdateMutation.isPending ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
                         </form>
+                    ) : (
+                        // Fallback for when selectedUser is null/being reset
+                        <div className="text-center p-4">Loading user details...</div>
                     )}
                 </div>
-                <form method="dialog" className="modal-backdrop">
+                {/* The modal-backdrop form is crucial for closing on outside click, but we must also reset state */}
+                <form method="dialog" className="modal-backdrop" onSubmit={resetModalState}>
                     <button>close</button>
                 </form>
             </dialog>

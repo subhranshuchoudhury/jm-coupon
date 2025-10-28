@@ -7,7 +7,7 @@ interface Profile {
     username: string;
     uid: string;
     token: string;
-    mobile: string;
+    phone: string;
     email: string;
     name: string;
     avatar: string;
@@ -48,7 +48,7 @@ const useProfileStore = create<ProfileState>(
                         username: profileData.username || '',
                         uid: profileData.uid || '',
                         token: profileData.token || '',
-                        mobile: profileData.mobile || '',
+                        phone: profileData.phone || '',
                         email: profileData.email || '',
                         name: profileData.name || '',
                         avatar: profileData.avatar || '',
