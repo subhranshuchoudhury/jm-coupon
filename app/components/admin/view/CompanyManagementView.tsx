@@ -25,6 +25,7 @@ export default function CompanyManagementView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+    const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null); // State for delete modal
 
     // Form state for the modal
     const [nameInput, setNameInput] = useState<string>('');
@@ -81,8 +82,15 @@ export default function CompanyManagementView() {
 
     /** Handler for the "Delete" button click */
     const handleDeleteClick = (company: Company) => {
-        if (window.confirm(`Are you sure you want to delete company: ${company.name}?`)) {
-            companyDeleteMutation.mutate(company.id);
+        setCompanyToDelete(company);
+        (document.getElementById('delete_confirmation_modal_company') as HTMLDialogElement)?.showModal();
+    };
+
+    const confirmDelete = () => {
+        if (companyToDelete) {
+            companyDeleteMutation.mutate(companyToDelete.id);
+            setCompanyToDelete(null);
+            (document.getElementById('delete_confirmation_modal_company') as HTMLDialogElement)?.close();
         }
     };
 
@@ -258,7 +266,37 @@ export default function CompanyManagementView() {
                     <button onClick={resetModalState}>close</button>
                 </form>
             </dialog>
-            {/* --- END Modal --- */}
+
+            {/* Delete Confirmation Modal */}
+            <dialog id="delete_confirmation_modal_company" className="modal">
+                <div className="modal-box">
+                    <h3 className="font-bold text-lg text-error">Confirm Deletion</h3>
+                    <p className="py-4">
+                        Are you absolutely sure you want to delete the company **{companyToDelete?.name}**?
+                        This action cannot be undone.
+                    </p>
+                    <div className="modal-action">
+                        <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={() => (document.getElementById('delete_confirmation_modal_company') as HTMLDialogElement)?.close()}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-error"
+                            onClick={confirmDelete}
+                            disabled={companyDeleteMutation.isPending}
+                        >
+                            {companyDeleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+                        </button>
+                    </div>
+                </div>
+                <form method="dialog" className="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
         </div>
     );
 }
