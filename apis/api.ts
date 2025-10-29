@@ -68,6 +68,9 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
             code: item.code,
             points: item.points, // Assuming points is a number or can be parsed
             usesStatus: usesStatus,
+            mrp: item.mrp,
+            company: item.company,
+            company_id: item.company_id,
             // expiryDate: item.expiryDate?.split(' ')[0] || '', // Removed due to missing field
         };
     });
@@ -118,6 +121,9 @@ export const createOrUpdateCoupon = async ({ id, data }: { id: string | 'new', d
     const payload: Partial<PocketBaseCoupon> = {
         code: data.code,
         points: data.points,
+        mrp: data.mrp,
+        company: data.company,
+        company_id: data.company_id,
     };
 
     if (id === 'new') {

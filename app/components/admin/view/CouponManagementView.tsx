@@ -2,20 +2,19 @@
 
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit, Plus, Trash2, QrCode, Upload } from "lucide-react"; // --- NEW ---
-import { useState, useRef } from "react"; // --- NEW ---
+import { useState, useRef } from "react";
 import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
 import pb from "@/lib/pocketbase";
-import * as XLSX from 'xlsx'; // --- NEW ---
+import * as XLSX from 'xlsx';
 
 
 // Helper function to show the modal by its ID
 const showModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.showModal();
 const closeModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.close();
 
-// --- NEW ---
 // Helper type for parsed Excel row
 type ParsedCouponRow = {
     code?: string;
@@ -23,28 +22,66 @@ type ParsedCouponRow = {
     company?: string;
 };
 
+type CompanyData = {
+    id: string;
+    name: string;
+    conversion_factor: number;
+};
+
 export default function CouponManagementView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    const [couponCodeInput, setCouponCodeInput] = useState<string>('');
 
-    // --- NEW: State for bulk upload ---
+    const [couponCodeInput, setCouponCodeInput] = useState<string>('');
+    const [pointsInput, setPointsInput] = useState<number | string>('');
+    const [mrpInput, setMrpInput] = useState<number | string>('');
+    const [companyInput, setCompanyInput] = useState<string>(''); // Stores company ID
+    const [companyName, setCompanyName] = useState<string>('')
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingError, setProcessingError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    // --- End NEW ---
 
-    // Fetch data using React Query
+    // Fetch coupons data
     const { data, isLoading, isError } = useQuery({
         queryKey: ['coupons', currentPage],
         queryFn: () => fetchCoupons(currentPage),
-        placeholderData: keepPreviousData,
+        refetchInterval: 60000, // Refetch every 60 seconds
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: true,
     });
+
+    // --- NEW: Fetch companies data for dropdown ---
+    const { data: companies, isLoading: isLoadingCompanies } = useQuery({
+        queryKey: ['companies'],
+        queryFn: async () => {
+            // Re-using logic from your bulk upload to fetch companies
+            const companyList = await pb.collection('companies').getFullList<CompanyData>({
+                fields: 'id, name, conversion_factor',
+                skipTotal: true,
+                sort: 'name'
+            });
+            return companyList;
+        },
+        refetchInterval: 10000, // Refetch every 10 seconds
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: true,
+    });
+
+    const resetModalState = () => {
+        setSelectedCoupon(null);
+        setCouponCodeInput('');
+        setPointsInput('');
+        setMrpInput('');
+        setCompanyInput('');
+        setCompanyName('');
+        couponMutate.reset();
+    };
+    // --- END NEW ---
 
     // Mutation for creating/updating coupon
     const couponMutate = useMutation({
@@ -52,8 +89,7 @@ export default function CouponManagementView() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['coupons'] });
             closeModal('coupon_edit_modal');
-            setSelectedCoupon(null);
-            setCouponCodeInput(''); // Clear code input state
+            resetModalState(); // --- MODIFIED ---
         },
     });
 
@@ -68,8 +104,14 @@ export default function CouponManagementView() {
     const handleOpenModal = (coupon: Coupon, initialCode = '') => {
         couponMutate.reset();
         setSelectedCoupon(coupon);
-        // Use initialCode for new, or existing code for edit
+        // --- MODIFIED: Set all modal states ---
         setCouponCodeInput(initialCode || coupon.code);
+        setPointsInput(coupon.points);
+        // Assume 'coupon' type now includes 'mrp' and 'company_id' from your fetch
+        setMrpInput(coupon.mrp || '');
+        setCompanyInput(coupon.company_id || '');
+        setCompanyName(coupon.company || '');
+        // --- END MODIFIED ---
         showModal('coupon_edit_modal');
     }
 
@@ -84,26 +126,86 @@ export default function CouponManagementView() {
     };
 
     const handleCreateNew = (initialCode = '') => {
-        const newCoupon: Coupon = { id: 'new', code: initialCode, points: 0, usesStatus: 'available' };
+        // --- MODIFIED ---
+        // Ensure new coupon has all properties, even if default
+        const newCoupon: Coupon = {
+            id: 'new',
+            code: initialCode,
+            points: 0,
+            usesStatus: 'available',
+            mrp: 0,
+            company_id: '',
+        };
         handleOpenModal(newCoupon, initialCode);
+        // Set defaults for a new coupon
+        setPointsInput('');
+        setMrpInput('');
+        setCompanyInput('');
+        // --- END MODIFIED ---
     }
 
     const handleScanComplete = (result: string) => {
         setIsScannerOpen(false);
-        // Ensure the form gets the trimmed code immediately when the modal opens
         handleCreateNew(result.trim());
     }
+
+    // --- NEW: Auto-calculate points ---
+    const calculatePoints = (mrpVal: string | number, companyId: string) => {
+        if (!companyId || !mrpVal) {
+            return; // Not enough info
+        }
+
+        const company = companies?.find(c => c.id === companyId);
+        if (!company) {
+            return; // Company not found
+        }
+
+        const mrpNum = parseFloat(mrpVal.toString());
+        if (isNaN(mrpNum) || mrpNum <= 0) {
+            setPointsInput(0); // Set to 0 if MRP is invalid
+            return;
+        }
+
+        const calculatedPoints = Math.round((mrpNum * company.conversion_factor) / 100);
+        setPointsInput(calculatedPoints);
+    };
+
+    const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newCompanyId = e.target.value;
+        setCompanyInput(newCompanyId);
+        calculatePoints(mrpInput, newCompanyId);
+    };
+
+    const handleMrpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newMrp = e.target.value;
+        setMrpInput(newMrp);
+        calculatePoints(newMrp, companyInput);
+    };
+    // --- END NEW ---
+
 
     const handleModalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!selectedCoupon) return;
-        const formData = new FormData(e.currentTarget);
+
+        // --- MODIFIED: Get data from state ---
+        const pointsNum = parseInt(pointsInput.toString(), 10);
+        const mrpNum = parseFloat(mrpInput.toString()) || 0;
+
+        // Basic validation
+        if (isNaN(pointsNum) || pointsNum < 1) {
+            // You can show an error here if desired
+            // For now, we rely on the input's `min="1"`
+            return;
+        }
 
         const data: Partial<PocketBaseCoupon> = {
-            // Use couponCodeInput from state for the most up-to-date value
             code: couponCodeInput,
-            points: parseInt(formData.get('points') as string, 10),
+            points: pointsNum,
+            mrp: mrpNum,
+            company_id: companyInput || "", // Send null if no company is selected
         };
+        // --- END MODIFIED ---
 
         couponMutate.mutate({ id: selectedCoupon.id, data });
     };
@@ -116,8 +218,7 @@ export default function CouponManagementView() {
         }
     }
 
-    // --- NEW: Bulk Upload Functions ---
-
+    // --- Bulk Upload Functions (Unchanged) ---
     const resetBulkModalState = () => {
         setSelectedFile(null);
         setIsProcessing(false);
@@ -185,14 +286,14 @@ export default function CouponManagementView() {
                     throw new Error("The file is empty or in the wrong format.");
                 }
 
-                const companies = await pb.collection('companies').getFullList<{
-                    name: string; conversion_factor: number; id: string;
-                }>({
+                // --- MODIFIED: Use the 'companies' data from useQuery if available ---
+                const companyList = companies || await pb.collection('companies').getFullList<CompanyData>({
                     page: 1,
                     perPage: 500,
                     fields: 'id, name, conversion_factor',
                     skipTotal: true,
                 });
+                // --- END MODIFIED ---
 
                 // --- Validation ---
                 const validationErrors: string[] = [];
@@ -217,7 +318,7 @@ export default function CouponManagementView() {
 
                     if (code && !isNaN(mrp) && mrp >= 1 && company) {
 
-                        const companyData = companies.find(c => c.name.toLowerCase() === company)
+                        const companyData = companyList.find(c => c.name.toLowerCase() === company)
 
                         if (!companyData) {
                             validationErrors.push(`Row ${rowNum}: 'company' "${company}" does not exist in the system.`);
@@ -239,14 +340,6 @@ export default function CouponManagementView() {
                     throw new Error(validationErrors.join('\n'));
                 }
 
-                couponsToCreate.forEach(coupon => {
-                    const company = companies.find(c => c.name.toLowerCase() === (coupon.company || '').toLowerCase());
-                    if (company && coupon.mrp) {
-                        coupon.points = Math.round(((coupon.mrp) * company.conversion_factor) / 100);
-                        coupon.company_id = company.id;
-                    }
-                });
-
                 setSuccessMessage(`Processing ${couponsToCreate.length} coupons...`);
 
                 const batch = pb.createBatch();
@@ -266,13 +359,11 @@ export default function CouponManagementView() {
                     })) as PromiseRejectedResult[];
 
                 if (failedUploads.length > 0) {
-                    // Try to get specific failed codes for a better error message
                     setProcessingError(`Uploaded ${successfulUploads} coupons, but ${failedUploads.length} failed.`);
                     setSuccessMessage(null);
                 } else {
                     setSuccessMessage(`Successfully uploaded ${successfulUploads} coupons!`);
                     queryClient.invalidateQueries({ queryKey: ['coupons'] });
-                    // Close modal on full success
                     setTimeout(() => {
                         handleCloseBulkModal();
                     }, 2000);
@@ -293,15 +384,14 @@ export default function CouponManagementView() {
 
         reader.readAsArrayBuffer(selectedFile);
     };
+    // --- End Bulk Upload Functions ---
 
-    // --- End NEW ---
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                 <h1 className="text-3xl font-bold hidden lg:block">Coupon Management 🎫</h1>
                 <div className="flex gap-2 flex-wrap">
-                    {/* --- NEW: Bulk Upload Button --- */}
                     <button className="btn btn-neutral gap-2" onClick={handleOpenBulkModal}>
                         <Upload size={18} /> Bulk Upload
                     </button>
@@ -328,6 +418,10 @@ export default function CouponManagementView() {
                                 <thead>
                                     <tr className="border-b border-base-content/10">
                                         <th>Code</th>
+                                        {/* --- MODIFIED: Added MRP and Company columns --- */}
+                                        <th>Company</th>
+                                        <th className="text-right">MRP</th>
+                                        {/* --- END MODIFIED --- */}
                                         <th className="text-right">Points Value</th>
                                         <th>Status</th>
                                         <th>Actions</th>
@@ -337,6 +431,11 @@ export default function CouponManagementView() {
                                     {data.items.map(coupon => (
                                         <tr key={coupon.id} className="hover">
                                             <td><span className="font-mono badge badge-neutral p-3 font-semibold">{coupon.code}</span></td>
+                                            {/* --- MODIFIED: Show company name and MRP --- */}
+                                            {/* This assumes your 'fetchCoupons' expands the company_id */}
+                                            <td>{coupon.company || 'N/A'}</td>
+                                            <td className="font-mono text-right">{coupon.mrp?.toLocaleString() || 'N/A'}</td>
+                                            {/* --- END MODIFIED --- */}
                                             <td className="font-mono text-right">{coupon.points.toLocaleString()}</td>
                                             <td>
                                                 {getUsesBadge(coupon.usesStatus)}
@@ -378,7 +477,7 @@ export default function CouponManagementView() {
                 </div>
             </div>
 
-            {/* Coupon Edit/Create Modal */}
+            {/* --- MODIFIED: Coupon Edit/Create Modal --- */}
             <dialog id="coupon_edit_modal" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg">
@@ -394,50 +493,93 @@ export default function CouponManagementView() {
                             }
                         </div>
                     )}
-                    {selectedCoupon && (
-                        <form onSubmit={handleModalSubmit} className="space-y-4 pt-4">
-                            <div className="form-control">
-                                <label className="label"><span className="label-text">Coupon Code</span></label>
-                                <input
-                                    type="text"
-                                    name="code"
-                                    value={couponCodeInput}
-                                    className="input input-bordered font-mono w-full"
-                                    required
-                                    onChange={(e) => setCouponCodeInput(e.target.value)}
-                                />
-                            </div>
-                            <div className="form-control">
-                                <label className="label"><span className="label-text">Points Value</span></label>
-                                <input type="number" name="points" defaultValue={selectedCoupon.points} className="input input-bordered w-full" required min="1" />
-                            </div>
-                            <div className="alert alert-info shadow-lg text-sm">
-                                The coupon code must be unique. Points value must be at least 1.
-                            </div>
-                            <div className="modal-action">
-                                <button type="button" className="btn btn-ghost" onClick={() => {
-                                    closeModal('coupon_edit_modal');
-                                    setSelectedCoupon(null);
-                                    setCouponCodeInput('');
-                                }}>
-                                    Cancel
-                                </button>
-                                <button className="btn btn-primary" type="submit" disabled={couponMutate.isPending}>
-                                    Save
-                                </button>
-                            </div>
-                        </form>
-                    )}
+                    {/* Form is always rendered to attach to state, but inputs are based on selectedCoupon */}
+                    <form onSubmit={handleModalSubmit} className="space-y-4 pt-4">
+                        <div className="form-control">
+                            <label className="label"><span className="label-text">Coupon Code</span></label>
+                            <input
+                                type="text"
+                                name="code"
+                                value={couponCodeInput}
+                                className="input input-bordered font-mono w-full"
+                                required
+                                onChange={(e) => setCouponCodeInput(e.target.value)}
+                            />
+                        </div>
+
+                        {/* --- NEW: Company Dropdown --- */}
+                        <div className="form-control">
+                            <label className="label"><span className="label-text">Company</span></label>
+                            <select
+                                name="company"
+                                className="select select-bordered w-full"
+                                value={companyInput}
+                                onChange={handleCompanyChange}
+                                disabled={isLoadingCompanies}
+                            >
+                                <option value="">{isLoadingCompanies ? 'Loading companies...' : 'Select a company'}</option>
+                                {companies?.map(company => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* --- NEW: MRP Input --- */}
+                        <div className="form-control">
+                            <label className="label"><span className="label-text">MRP</span></label>
+                            <input
+                                type="number"
+                                name="mrp"
+                                value={mrpInput}
+                                className="input input-bordered w-full"
+                                min="0"
+                                step="0.01"
+                                onChange={handleMrpChange}
+                                placeholder="e.g., 100"
+                            />
+                        </div>
+                        {/* --- END NEW --- */}
+
+                        <div className="form-control">
+                            <label className="label"><span className="label-text">Points Value</span></label>
+                            <input
+                                type="number"
+                                name="points"
+                                value={pointsInput}
+                                className="input input-bordered w-full"
+                                required
+                                min="1"
+                                onChange={(e) => setPointsInput(e.target.value)} // Allows manual override
+                            />
+                        </div>
+
+                        <div className="alert alert-info shadow-lg text-sm">
+                            Points are calculated automatically from MRP and Company. You can still set the points value manually.
+                        </div>
+
+                        <div className="modal-action">
+                            <button type="button" className="btn btn-ghost" onClick={() => {
+                                closeModal('coupon_edit_modal');
+                                resetModalState(); // --- MODIFIED ---
+                            }}>
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary" type="submit" disabled={couponMutate.isPending}>
+                                Save
+                            </button>
+                        </div>
+                    </form>
                 </div>
                 <form method="dialog" className="modal-backdrop">
-                    <button onClick={() => {
-                        setSelectedCoupon(null);
-                        setCouponCodeInput('');
-                    }}>close</button>
+                    <button onClick={resetModalState}>close</button> {/* --- MODIFIED --- */}
                 </form>
             </dialog>
+            {/* --- END MODIFIED --- */}
 
-            {/* --- NEW: Bulk Upload Modal --- */}
+
+            {/* --- Bulk Upload Modal (Unchanged) --- */}
             <dialog id="bulk_upload_modal" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg">Bulk Upload Coupons</h3>
@@ -479,7 +621,6 @@ export default function CouponManagementView() {
                         {processingError && (
                             <div className="alert alert-error">
                                 <span className="font-bold">Error:</span>
-                                {/* Use pre-wrap to respect newlines in validation errors */}
                                 <pre className="whitespace-pre-wrap">{processingError}</pre>
                             </div>
                         )}
@@ -502,7 +643,7 @@ export default function CouponManagementView() {
                     <button onClick={handleCloseBulkModal}>close</button>
                 </form>
             </dialog>
-            {/* --- End NEW --- */}
+            {/* --- End Bulk Upload Modal --- */}
 
 
             {/* Render the QR Scanner Modal conditionally */}

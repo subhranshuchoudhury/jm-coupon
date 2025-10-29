@@ -106,6 +106,10 @@ export type Coupon = {
     id: string;
     code: string;
     points: number;
+    mrp?: number;
+    company?: string;
+    company_id?: string;
+    // usesLeft?: number | 'unlimited'; // Removed
     usesStatus: 'redeemed' | 'available'; // Simplified logic based on provided API: if 'redeemed', usesStatus is 'redeemed'
     // expiryDate: string; // Removed
 };
