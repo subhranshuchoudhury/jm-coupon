@@ -56,21 +56,21 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
     // PocketBase response from getList of 'coupons' collection
     const resultList: ListResult<PocketBaseCoupon> = await pb.collection('coupons').getList(page, PER_PAGE, {
         sort: '-created',
+        expand: 'company', // Expand the company relation to get company details
     });
 
     const coupons: Coupon[] = resultList.items.map(item => {
         // Since your provided schema only has a boolean 'redeemed' field, 
         // we'll use a simplified status instead of a hypothetical 'usesLeft' field.
-        const usesStatus = item.redeemed ? 'redeemed' : 'available';
 
         return {
             id: item.id,
             code: item.code,
             points: item.points, // Assuming points is a number or can be parsed
-            usesStatus: usesStatus,
+            redeemed: item.redeemed,
             mrp: item.mrp,
+            companyName: item?.expand?.company?.name || 'N/A',
             company: item.company,
-            company_id: item.company_id,
             // expiryDate: item.expiryDate?.split(' ')[0] || '', // Removed due to missing field
         };
     });
@@ -123,7 +123,6 @@ export const createOrUpdateCoupon = async ({ id, data }: { id: string | 'new', d
         points: data.points,
         mrp: data.mrp,
         company: data.company,
-        company_id: data.company_id,
     };
 
     if (id === 'new') {

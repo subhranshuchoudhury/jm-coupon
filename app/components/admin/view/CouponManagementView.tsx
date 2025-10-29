@@ -37,9 +37,7 @@ export default function CouponManagementView() {
     const [couponCodeInput, setCouponCodeInput] = useState<string>('');
     const [pointsInput, setPointsInput] = useState<number | string>('');
     const [mrpInput, setMrpInput] = useState<number | string>('');
-    const [companyInput, setCompanyInput] = useState<string>(''); // Stores company ID
-    const [companyName, setCompanyName] = useState<string>('')
-    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [companyInput, setCompanyInput] = useState<string>('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingError, setProcessingError] = useState<string | null>(null);
@@ -78,7 +76,6 @@ export default function CouponManagementView() {
         setPointsInput('');
         setMrpInput('');
         setCompanyInput('');
-        setCompanyName('');
         couponMutate.reset();
     };
     // --- END NEW ---
@@ -104,14 +101,10 @@ export default function CouponManagementView() {
     const handleOpenModal = (coupon: Coupon, initialCode = '') => {
         couponMutate.reset();
         setSelectedCoupon(coupon);
-        // --- MODIFIED: Set all modal states ---
         setCouponCodeInput(initialCode || coupon.code);
         setPointsInput(coupon.points);
-        // Assume 'coupon' type now includes 'mrp' and 'company_id' from your fetch
         setMrpInput(coupon.mrp || '');
-        setCompanyInput(coupon.company_id || '');
-        setCompanyName(coupon.company || '');
-        // --- END MODIFIED ---
+        setCompanyInput(coupon.company || '');
         showModal('coupon_edit_modal');
     }
 
@@ -132,9 +125,9 @@ export default function CouponManagementView() {
             id: 'new',
             code: initialCode,
             points: 0,
-            usesStatus: 'available',
             mrp: 0,
-            company_id: '',
+            company: '',
+            redeemed: false,
         };
         handleOpenModal(newCoupon, initialCode);
         // Set defaults for a new coupon
@@ -203,17 +196,17 @@ export default function CouponManagementView() {
             code: couponCodeInput,
             points: pointsNum,
             mrp: mrpNum,
-            company_id: companyInput || "", // Send null if no company is selected
+            company: companyInput || "", // Send null if no company is selected
         };
         // --- END MODIFIED ---
 
         couponMutate.mutate({ id: selectedCoupon.id, data });
     };
 
-    const getUsesBadge = (status: Coupon['usesStatus']) => {
+    const getUsesBadge = (status: Coupon['redeemed']) => {
         switch (status) {
-            case 'redeemed': return <span className="badge badge-error">Redeemed</span>;
-            case 'available':
+            case true: return <span className="badge badge-error">Redeemed</span>;
+            case false:
             default: return <span className="badge badge-success">Available</span>;
         }
     }
@@ -327,10 +320,9 @@ export default function CouponManagementView() {
 
                         couponsToCreate.push({
                             code,
-                            company,
                             mrp,
                             points: Math.round(((mrp) * (companyData?.conversion_factor || 0)) / 100),
-                            company_id: companyData?.id,
+                            company: companyData?.id,
                         });
                     }
 
@@ -432,13 +424,13 @@ export default function CouponManagementView() {
                                         <tr key={coupon.id} className="hover">
                                             <td><span className="font-mono badge badge-neutral p-3 font-semibold">{coupon.code}</span></td>
                                             {/* --- MODIFIED: Show company name and MRP --- */}
-                                            {/* This assumes your 'fetchCoupons' expands the company_id */}
-                                            <td>{coupon.company || 'N/A'}</td>
+                                            {/* This assumes your 'fetchCoupons' expands the company */}
+                                            <td>{coupon.companyName || 'N/A'}</td>
                                             <td className="font-mono text-right">{coupon.mrp?.toLocaleString() || 'N/A'}</td>
                                             {/* --- END MODIFIED --- */}
                                             <td className="font-mono text-right">{coupon.points.toLocaleString()}</td>
                                             <td>
-                                                {getUsesBadge(coupon.usesStatus)}
+                                                {getUsesBadge(coupon.redeemed)}
                                             </td>
                                             <td>
                                                 <div className="join">

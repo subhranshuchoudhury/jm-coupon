@@ -97,9 +97,10 @@ export type PocketBaseCoupon = {
     collectionId: string;
     collectionName: string;
     redeemed_by?: string;
+    companyName?: string;
     company?: string;
-    company_id?: string;
     mrp?: number;
+    expand?: any;
 };
 
 export type Coupon = {
@@ -107,11 +108,9 @@ export type Coupon = {
     code: string;
     points: number;
     mrp?: number;
+    companyName?: string;
     company?: string;
-    company_id?: string;
-    // usesLeft?: number | 'unlimited'; // Removed
-    usesStatus: 'redeemed' | 'available'; // Simplified logic based on provided API: if 'redeemed', usesStatus is 'redeemed'
-    // expiryDate: string; // Removed
+    redeemed: boolean;
 };
 
 export type PaginatedResult<T> = {
