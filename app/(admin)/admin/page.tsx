@@ -8,7 +8,7 @@ import {
     Ticket,
     QrCode,
     Menu, UserCircle,
-    LogOut
+    LogOut, Building2
 } from 'lucide-react';
 import {
     useQuery
@@ -25,6 +25,7 @@ import CouponManagementView from '@/app/components/admin/view/CouponManagementVi
 import RedeemRequestView from '@/app/components/admin/view/RedeemRequestView';
 import { deleteCookie } from 'cookies-next';
 import { useRouter } from 'next/navigation';
+import CompanyManagementView from '@/app/components/admin/view/CompanyManagementView';
 
 
 // --- APP BAR COMPONENT (To include profile image) ---
@@ -115,6 +116,7 @@ function Admin() {
         redeem: 'Redeem Requests',
         coupons: 'Coupon Management',
         scan: 'Scan / Enter Coupon',
+        companies: 'Company Management',
     };
 
     // Main content renderer
@@ -130,6 +132,8 @@ function Admin() {
                 return <CouponManagementView />;
             case 'scan':
                 return <ScanCouponView />;
+            case 'companies':
+                return <CompanyManagementView />
             default:
                 return <DashboardView />;
         }
@@ -191,6 +195,12 @@ function Admin() {
                             <a onClick={() => handleSetView('coupons')} className={activeView === 'coupons' ? 'active font-semibold' : ''}>
                                 <Ticket size={18} />
                                 Coupons
+                            </a>
+                        </li>
+                        <li>
+                            <a onClick={() => handleSetView('companies')} className={activeView === 'companies' ? 'active font-semibold' : ''}>
+                                <Building2 size={18} />
+                                Companies
                             </a>
                         </li>
                         <li>

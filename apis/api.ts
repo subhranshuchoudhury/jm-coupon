@@ -1,4 +1,4 @@
-import { Coupon, PaginatedResult, PocketBaseCoupon, PocketBaseRedeemRequest, PocketBaseUser, RedeemRequestAdmin, RedeemStatus, User } from "@/app/types";
+import { Company, Coupon, PaginatedResult, PocketBaseCompany, PocketBaseCoupon, PocketBaseRedeemRequest, PocketBaseUser, RedeemRequestAdmin, RedeemStatus, User } from "@/app/types";
 import pb from "@/lib/pocketbase";
 import { ListResult } from "pocketbase";
 
@@ -83,6 +83,28 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
         items: coupons,
     };
 };
+export const fetchCompanies = async (page: number): Promise<PaginatedResult<Company>> => {
+    const resultList: ListResult<PocketBaseCompany> = await pb.collection('companies').getList(page, PER_PAGE, {
+        sort: '-created',
+    });
+
+    const company: Company[] = resultList.items.map(item => {
+
+        return {
+            id: item.id,
+            name: item.name,
+            conversion_factor: item.conversion_factor,
+        };
+    });
+
+    return {
+        page: resultList.page,
+        perPage: resultList.perPage,
+        totalPages: resultList.totalPages,
+        totalItems: resultList.totalItems,
+        items: company,
+    };
+};
 
 export const updateUser = async ({ id, data }: { id: string, data: Partial<PocketBaseUser> }) => {
     return await pb.collection('users').update(id, data);
@@ -116,7 +138,22 @@ export const manualPointGrant = async (data: { userId: string, points: number, c
 export const deleteCoupon = async (id: string) => {
     return await pb.collection('coupons').delete(id);
 };
+export const deleteCompany = async (id: string) => {
+    return await pb.collection('companies').delete(id);
+};
 
+export const createOrUpdateCompany = async ({ id, data }: { id: string | 'new', data: Partial<PocketBaseCompany> }) => {
+    const payload: Partial<PocketBaseCompany> = {
+        name: data.name,
+        conversion_factor: data.conversion_factor,
+    };
+
+    if (id === 'new') {
+        return await pb.collection('companies').create(payload);
+    } else {
+        return await pb.collection('companies').update(id, payload);
+    }
+};
 export const createOrUpdateCoupon = async ({ id, data }: { id: string | 'new', data: Partial<PocketBaseCoupon> }) => {
     const payload: Partial<PocketBaseCoupon> = {
         code: data.code,

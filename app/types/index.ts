@@ -102,6 +102,15 @@ export type PocketBaseCoupon = {
     mrp?: number;
     expand?: any;
 };
+export type PocketBaseCompany = {
+    id: string;
+    name: string;
+    conversion_factor: number;
+    created: string;
+    updated: string;
+    collectionId: string;
+    collectionName: string;
+};
 
 export type Coupon = {
     id: string;
@@ -112,6 +121,11 @@ export type Coupon = {
     company?: string;
     redeemed: boolean;
 };
+export type Company = {
+    id: string;
+    name: string;
+    conversion_factor: number;
+};
 
 export type PaginatedResult<T> = {
     page: number;
@@ -121,4 +135,4 @@ export type PaginatedResult<T> = {
     items: T[];
 };
 
-export type AdminView = 'dashboard' | 'users' | 'redeem' | 'coupons' | 'scan';
+export type AdminView = 'dashboard' | 'users' | 'redeem' | 'coupons' | 'scan' | 'companies';
