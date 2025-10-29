@@ -97,6 +97,9 @@ export type PocketBaseCoupon = {
     collectionId: string;
     collectionName: string;
     redeemed_by?: string;
+    company?: string;
+    company_id?: string;
+    mrp?: number;
 };
 
 export type Coupon = {
