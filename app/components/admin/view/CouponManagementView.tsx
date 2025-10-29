@@ -32,6 +32,8 @@ export default function CouponManagementView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+    const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null); // State for delete modal
+
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     const [couponCodeInput, setCouponCodeInput] = useState<string>('');
@@ -113,8 +115,15 @@ export default function CouponManagementView() {
     };
 
     const handleDeleteClick = (coupon: Coupon) => {
-        if (window.confirm(`Are you sure you want to delete coupon ${coupon.code}?`)) {
-            couponDeleteMutation.mutate(coupon.id);
+        setCouponToDelete(coupon);
+        (document.getElementById('delete_confirmation_modal_coupon') as HTMLDialogElement)?.showModal();
+    };
+
+    const confirmDelete = () => {
+        if (couponToDelete) {
+            couponDeleteMutation.mutate(couponToDelete.id);
+            setCouponToDelete(null);
+            (document.getElementById('delete_confirmation_modal_coupon') as HTMLDialogElement)?.close();
         }
     };
 
@@ -356,9 +365,7 @@ export default function CouponManagementView() {
                 } else {
                     setSuccessMessage(`Successfully uploaded ${successfulUploads} coupons!`);
                     queryClient.invalidateQueries({ queryKey: ['coupons'] });
-                    setTimeout(() => {
-                        handleCloseBulkModal();
-                    }, 2000);
+                    handleCloseBulkModal();
                 }
 
             } catch (err: any) {
@@ -649,6 +656,36 @@ export default function CouponManagementView() {
                     onScan={handleScanComplete}
                 />
             )}
+            {/* Delete Confirmation Modal */}
+            <dialog id="delete_confirmation_modal_coupon" className="modal">
+                <div className="modal-box">
+                    <h3 className="font-bold text-lg text-error">Confirm Deletion</h3>
+                    <p className="py-4">
+                        Are you absolutely sure you want to delete the coupon **{couponToDelete?.code}**?
+                        This action cannot be undone.
+                    </p>
+                    <div className="modal-action">
+                        <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={() => (document.getElementById('delete_confirmation_modal_coupon') as HTMLDialogElement)?.close()}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-error"
+                            onClick={confirmDelete}
+                            disabled={couponDeleteMutation.isPending}
+                        >
+                            {couponDeleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+                        </button>
+                    </div>
+                </div>
+                <form method="dialog" className="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
         </div>
     );
 }

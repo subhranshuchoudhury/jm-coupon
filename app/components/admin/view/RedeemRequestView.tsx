@@ -12,6 +12,7 @@ export default function RedeemRequestView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRequest, setSelectedRequest] = useState<RedeemRequestAdmin | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null); // State for toast notification
 
     // Fetch data using React Query
     const { data, isLoading, isError } = useQuery({
@@ -51,11 +52,17 @@ export default function RedeemRequestView() {
         redeemUpdateMutation.mutate({ id: selectedRequest.id, data });
     };
 
-    const handleCopy = (text: string, fieldName: string) => {
-        navigator.clipboard.writeText(text);
-        // You might want to add a temporary message/toast here
-        alert(`${fieldName} copied to clipboard: ${text}`);
+    const handleCopy = async (text: string, fieldName: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setToast({ message: `${fieldName} copied to clipboard!`, type: 'success' });
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            setToast({ message: `Failed to copy ${fieldName}.`, type: 'error' });
+        }
+        setTimeout(() => setToast(null), 3000);
     };
+
 
     const getStatusBadge = (status: RedeemStatus) => {
         switch (status.toLowerCase()) {
@@ -70,6 +77,15 @@ export default function RedeemRequestView() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold mb-6 hidden lg:block">Redeem Requests 🎁</h1>
+            {/* Toast Notification */}
+            {toast && (
+                <div className={`toast toast-end z-50`}>
+                    <div className={`alert ${toast.type === 'success' ? 'alert-success' : toast.type === 'error' ? 'alert-error' : 'alert-info'}`}>
+                        {toast.type === 'success' ? <CheckCircle size={20} /> : <XCircle size={20} />}
+                        <span>{toast.message}</span>
+                    </div>
+                </div>
+            )}
             <div className="card bg-base-100 shadow-xl">
                 <div className="card-body p-0">
                     <div className="overflow-x-auto">
