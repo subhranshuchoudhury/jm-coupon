@@ -29,7 +29,7 @@ import { useRouter } from 'next/navigation';
 
 // --- APP BAR COMPONENT (To include profile image) ---
 function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: AdminView, viewTitles: Record<AdminView, string>, toggleDrawer: () => void }) {
-    const { profile } = useProfileStore(); // Use the mock/actual store
+    const { profile, removeProfile } = useProfileStore(); // Use the mock/actual store
     const router = useRouter();
 
     // Construct the actual avatar URL for the current admin user
@@ -79,6 +79,7 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
                                     pb.authStore.clear();
                                     deleteCookie('pb_auth');
                                     deleteCookie('role');
+                                    removeProfile();
                                     router.refresh();
                                 }}
                             >

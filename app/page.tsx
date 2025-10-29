@@ -112,7 +112,7 @@ function App() {
   const router = useRouter();
   const queryClient = useQueryClient(); // Get query client
 
-  const { profile, updateProfile } = useProfileStore();
+  const { profile, updateProfile, removeProfile } = useProfileStore();
 
   // --- REMOVED `totalPoints` state, will use `profile.total_points` directly ---
   const [alertMessage, setAlertMessage] = useState('');
@@ -452,6 +452,7 @@ function App() {
                 pb.authStore.clear();
                 deleteCookie('pb_auth');
                 deleteCookie('role');
+                removeProfile();
                 router.refresh();
               }}
             >

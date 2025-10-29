@@ -4,11 +4,12 @@ import QRScannerModal from "./QRScannerModal";
 import RedeemRequestItem from "./tabs/RedeemRequestItem";
 import TransactionItem from "./tabs/TransactionItem";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { setCookie } from "cookies-next";
+import { deleteCookie, setCookie } from "cookies-next";
 import pb from "@/lib/pocketbase";
 import useProfileStore from "@/stores/profile.store";
 import { useEffect, useState } from "react";
 import { RedeemRequest, Transaction } from "../types";
+import { useRouter } from "next/navigation";
 
 type HomePageProps = {
     totalPoints: number;
@@ -29,7 +30,10 @@ export default function HomePage({
     onRedeemClick,
     showAlert,
 }: HomePageProps) {
-    const { profile, updateProfile } = useProfileStore();
+
+    const router = useRouter();
+
+    const { profile, updateProfile, removeProfile } = useProfileStore();
 
     const [manualCode, setManualCode] = useState('');
     const [activeTab, setActiveTab] = useState('recent');
@@ -135,12 +139,13 @@ export default function HomePage({
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['userProfile', profile?.uid],
         queryFn: fetchProfileRefresh,
-        enabled: !!pb.authStore.token,
+        // enabled: !!pb.authStore.token,
         retryDelay: 5000,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
         refetchInterval: 10000,
     });
+
 
     useEffect(() => {
         if (data) {
@@ -149,8 +154,13 @@ export default function HomePage({
     }, [data]);
 
     useEffect(() => {
-        if (isError) {
-            console.error('Error refreshing profile:', error);
+        // Guard against different error shapes by using a type assertion / runtime check
+        if (isError && (error as any)?.status === 401) {
+            pb.authStore.clear();
+            removeProfile();
+            deleteCookie('pb_auth');
+            deleteCookie('role');
+            router.replace('/signin');
         }
     }, [isError, error]);
 
