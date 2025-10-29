@@ -14,7 +14,9 @@ export default function RedeemModalContent({
 }: RedeemModalProps) {
     const { profile } = useProfileStore();
 
-    const redeemableValue = (profile?.total_points! / 100).toFixed(2); // 100 points = ₹1
+    const conversionPoint = 1;
+
+    const redeemableValue = (profile?.total_points! / conversionPoint).toFixed(2);
 
     return (
         <>

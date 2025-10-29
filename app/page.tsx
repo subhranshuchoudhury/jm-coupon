@@ -18,8 +18,9 @@ import HomePage from './components/HomePage';
 
 // --- MOCK DATA (Only for rewards, as no API was provided for it) ---
 const mockRewards = [
-  { id: 'r1', title: '₹50 Voucher', points: 5000, icon: Ticket },
-  { id: 'r3', title: '₹100 Voucher', points: 10000, icon: Ticket },
+  { id: 'r1', title: '150 Voucher', points: 150, icon: Ticket },
+  { id: 'r2', title: '500 Voucher', points: 500, icon: Ticket },
+  { id: 'r3', title: '1000 Voucher', points: 1000, icon: Ticket },
 ];
 
 // --- TYPE DEFINITIONS ---
