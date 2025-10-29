@@ -5,35 +5,76 @@ import { setCookie } from 'cookies-next';
 import { useRouter } from "next/navigation";
 import useProfileStore from "@/stores/profile.store";
 
+// A small component to inject the necessary custom CSS for animations
+// and the glassmorphism effects. This keeps everything in one file.
+const CustomStyles = () => (
+    <style jsx global>{`
+        /* Keyframe animation for floating */
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(-10deg);
+            }
+            50% {
+                transform: translateY(-40px) rotate(10deg);
+            }
+        }
+
+        /* Base styles for the glassmorphism coins */
+        .coin {
+            position: absolute;
+            border-radius: 50%;
+            /* The glassmorphism effect */
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            will-change: transform; /* Optimize for animation */
+            z-index: 1;
+        }
+
+        /* Custom text shadow for the logo */
+        .text-shadow-custom {
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Apply animations with different durations and delays */
+        .animate-float-1 { animation: float 12s ease-in-out infinite; }
+        .animate-float-2 { animation: float 15s ease-in-out infinite 3s; }
+        .animate-float-3 { animation: float 10s ease-in-out infinite 1s; }
+        .animate-float-4 { animation: float 18s ease-in-out infinite 5s; }
+        .animate-float-5 { animation: float 14s ease-in-out infinite 2s; }
+        .animate-float-6 { animation: float 11s ease-in-out infinite 4s; }
+    `}</style>
+);
+
 export default function SignInForm() {
     const { setProfile } = useProfileStore();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState(null);
 
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
-            // Trigger PocketBase Google OAuth2 authentication
             await pb.collection("users").authWithOAuth2({
                 provider: "google",
             });
 
-            if (pb.authStore.record?.id)
-                await pb.collection('users').update(pb.authStore.record?.id, {
+            if (pb.authStore.record?.id) {
+                await pb.collection('users').update(pb.authStore.record.id, {
                     emailVisibility: true,
-                })
+                });
+            }
 
-            // Log auth data for debugging
             if (process.env.NODE_ENV === "development") {
                 console.log("Auth valid:", pb.authStore.isValid);
                 console.log("Auth token:", pb.authStore.token);
                 console.log("Auth Record", pb.authStore.record);
             }
 
-            // Export auth store to cookie
             const cookieString = pb.authStore.token;
             const record = pb.authStore.record;
             if (record) {
@@ -51,7 +92,6 @@ export default function SignInForm() {
                     total_points: record.total_points || 0,
                 });
 
-                // Set the cookie using cookies-next
                 await setCookie("pb_auth", cookieString, {
                     maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
                 });
@@ -70,59 +110,77 @@ export default function SignInForm() {
     };
 
     return (
-        // Use hero for a centered, full-height layout
-        <div className="hero min-h-screen bg-base-200">
-            <div className="hero-content flex-col w-full max-w-md px-4">
-                {/* Header Text */}
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold text-base-content">
-                        Sign In
-                    </h1>
-                    <p className="py-4 text-base-content/70">
-                        Use your official registered Google account to continue.
-                    </p>
+        <>
+            {/* This component injects the keyframes and coin styles */}
+            <CustomStyles />
+
+            {/* Main container with gradient and relative positioning */}
+            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
+                
+                {/* Background Coins Container */}
+                <div className="absolute inset-0 w-full h-full z-0">
+                    <div className="coin animate-float-1 w-32 h-32 top-1/4 left-1/4"></div>
+                    <div className="coin animate-float-2 w-20 h-20 top-1/2 left-1/3"></div>
+                    <div className="coin animate-float-3 w-48 h-48 top-1/3 right-1/4"></div>
+                    <div className="coin animate-float-4 w-16 h-16 bottom-1/4 left-1/2"></div>
+                    <div className="coin animate-float-5 w-24 h-24 top-3/4 right-1/3"></div>
+                    <div className="coin animate-float-6 w-40 h-40 bottom-1/3 left-1/4"></div>
+                    <div className="coin animate-float-1 w-28 h-28 bottom-1/2 right-1/2"></div>
+                    <div className="coin animate-float-3 w-20 h-20 top-10 left-10"></div>
+                    <div className="coin animate-float-5 w-36 h-36 bottom-10 right-10"></div>
                 </div>
 
-                {/* Card for the form */}
-                <div className="card w-full shadow-2xl bg-base-100">
-                    <div className="card-body">
+                {/* Centered Content */}
+                <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+                    
+                    {/* Glassmorphism Card */}
+                    <div className="w-full max-w-md rounded-3xl bg-white/10 p-8 shadow-2xl backdrop-blur-lg border border-white/20">
+                        <div className="text-center">
+                            <h1 className="text-4xl font-bold text-white text-shadow-custom">
+                                Sign In
+                            </h1>
+                            <p className="py-4 text-gray-200 text-shadow-custom">
+                                Use your official registered Google account to continue.
+                            </p>
+                        </div>
 
-                        {/* Error Alert */}
+                        {/* Error Alert - Styled with glass effect */}
                         {error && (
-                            <div role="alert" className="alert alert-error mb-4">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-6 w-6 shrink-0 stroke-current"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                                <span>{error}</span>
+                            <div role="alert" className="my-4 rounded-lg border border-red-500/50 bg-red-500/30 p-4 text-white backdrop-blur-md">
+                                <div className="flex items-center">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-6 w-6 shrink-0 stroke-current"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                    <span className="ml-3">{error}</span>
+                                </div>
                             </div>
                         )}
 
                         {/* Button Container */}
-                        <div className="form-control mt-2 text-center">
+                        <div className="mt-6">
                             <button
                                 onClick={handleGoogleSignIn}
                                 disabled={isLoading}
-                                // Use btn-neutral or btn-primary based on your theme's preference
-                                className="btn btn-neutral"
+                                className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/20 p-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? (
-                                    // DaisyUI spinner
-                                    <span className="loading loading-spinner"></span>
+                                    // Tailwind CSS spinner
+                                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
                                 ) : (
                                     // Google SVG
                                     <svg
-                                        width="20"
-                                        height="20"
+                                        width="24"
+                                        height="24"
                                         viewBox="0 0 20 20"
                                         fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
@@ -145,13 +203,15 @@ export default function SignInForm() {
                                         />
                                     </svg>
                                 )}
-                                {isLoading ? "Signing in..." : "Sign in with Google"}
+                                <span className="fill-white">
+                                    {isLoading ? "Signing in..." : "Sign in with Google"}
+                                </span>
                             </button>
                         </div>
-
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
+
