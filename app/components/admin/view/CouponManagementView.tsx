@@ -598,6 +598,10 @@ export default function CouponManagementView() {
                             />
                         </div>
 
+                        <div className="alert alert-info shadow-lg text-sm">
+                            The file should contain columns: code (unique), company(lower case), and mrp(number). This is a database transaction; either all coupons will be created, or none if there are errors.
+                        </div>
+
                         {/* --- Feedback Area --- */}
                         {isProcessing && (
                             <div className="alert alert-info">
