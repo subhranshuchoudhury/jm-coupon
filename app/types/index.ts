@@ -120,6 +120,8 @@ export type Coupon = {
     companyName?: string;
     company?: string;
     redeemed: boolean;
+    created?: string;
+    updated?: string;
 };
 export type Company = {
     id: string;

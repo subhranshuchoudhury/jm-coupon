@@ -71,6 +71,8 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
             mrp: item.mrp,
             companyName: item?.expand?.company?.name || 'N/A',
             company: item.company,
+            created: item.created,
+            updated: item.updated,
             // expiryDate: item.expiryDate?.split(' ')[0] || '', // Removed due to missing field
         };
     });

@@ -1,14 +1,20 @@
 export const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    // Use 'T' split if the date string includes time and you only want the date part
-    const datePart = dateString.split('T')[0].split(' ')[0];
+
     try {
-        return new Date(datePart).toLocaleDateString('en-US', {
+        const date = new Date(dateString);
+        const formattedDate = date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
         });
+        const formattedTime = date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        });
+        return `${formattedDate} ${formattedTime}`;
     } catch (e) {
-        return datePart; // Fallback to raw string if date parsing fails
+        return dateString.split('T')[0].split(' ')[0]; // fallback to raw date part
     }
 };

@@ -9,6 +9,7 @@ import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
 import pb from "@/lib/pocketbase";
 import * as XLSX from 'xlsx';
+import { formatDate } from "@/utils";
 
 
 // Helper function to show the modal by its ID
@@ -423,6 +424,8 @@ export default function CouponManagementView() {
                                         {/* --- END MODIFIED --- */}
                                         <th className="text-right">Points Value</th>
                                         <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Updated</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -439,6 +442,12 @@ export default function CouponManagementView() {
                                             <td>
                                                 {getUsesBadge(coupon.redeemed)}
                                             </td>
+                                            <td>{
+                                                coupon.created && formatDate(coupon.created)
+                                            }</td>
+                                            <td>{
+                                                coupon.updated && formatDate(coupon.updated)
+                                            }</td>
                                             <td>
                                                 <div className="join">
                                                     <button
