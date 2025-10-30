@@ -52,7 +52,7 @@ export default function SignInForm() {
     const { setProfile } = useProfileStore();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
@@ -115,8 +115,8 @@ export default function SignInForm() {
             <CustomStyles />
 
             {/* Main container with gradient and relative positioning */}
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
-                
+            <div className="relative min-h-screen overflow-hidden bg-linear-to-br from-blue-600 to-purple-700 font-sans">
+
                 {/* Background Coins Container */}
                 <div className="absolute inset-0 w-full h-full z-0">
                     <div className="coin animate-float-1 w-32 h-32 top-1/4 left-1/4"></div>
@@ -132,7 +132,7 @@ export default function SignInForm() {
 
                 {/* Centered Content */}
                 <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-                    
+
                     {/* Glassmorphism Card */}
                     <div className="w-full max-w-md rounded-3xl bg-white/10 p-8 shadow-2xl backdrop-blur-lg border border-white/20">
                         <div className="text-center">
@@ -171,7 +171,7 @@ export default function SignInForm() {
                             <button
                                 onClick={handleGoogleSignIn}
                                 disabled={isLoading}
-                                className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/20 p-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/20 p-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
                             >
                                 {isLoading ? (
                                     // Tailwind CSS spinner
