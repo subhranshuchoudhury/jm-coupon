@@ -15,7 +15,7 @@ interface ScannedData {
 
 export default function ScanCouponView() {
     const [couponCode, setCouponCode] = useState('');
-    const [points, setPoints] = useState('');
+    const [points, setPoints] = useState<number>(0);
     const [userId, setUserId] = useState('');
     const [message, setMessage] = useState('');
     // State to control the visibility of the scanner modal
