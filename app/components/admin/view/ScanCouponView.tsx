@@ -15,7 +15,7 @@ interface ScannedData {
 
 export default function ScanCouponView() {
     const [couponCode, setCouponCode] = useState('');
-    const [points, setPoints] = useState(0);
+    const [points, setPoints] = useState('');
     const [userId, setUserId] = useState('');
     const [message, setMessage] = useState('');
     // State to control the visibility of the scanner modal
@@ -143,7 +143,7 @@ export default function ScanCouponView() {
                                     placeholder="e.g., 100 or -100"
                                     className="input input-bordered w-full"
                                     value={points}
-                                    onChange={(e) => setPoints(parseInt(e.target.value, 10))}
+                                    onChange={(e) => setPoints(Number(e.target.value))}
                                     required
                                 />
                             </div>
