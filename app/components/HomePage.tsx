@@ -72,11 +72,11 @@ export default function HomePage({
             showAlert("🎉" + data.message || 'Code submitted successfully!');
             // Refetch the user's profile to update points
             queryClient.invalidateQueries({
-                queryKey: ['userProfile', profile?.uid],
+                queryKey: ['userProfile', profile?.id],
             });
             // --- ALSO REFETCH TRANSACTIONS ---
             queryClient.invalidateQueries({
-                queryKey: ['transactions', profile?.uid],
+                queryKey: ['transactions', profile?.id],
             });
         },
         onError: (error: any) => {
@@ -130,14 +130,14 @@ export default function HomePage({
             total_points: record.total_points || 0,
             email: record.email,
             name: record.name,
-            uid: record.id,
+            id: record.id,
             role: record.role,
         };
     };
 
     // --- Periodic Profile Refresh ---
     const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['userProfile', profile?.uid],
+        queryKey: ['userProfile', profile?.id],
         queryFn: fetchProfileRefresh,
         // enabled: !!pb.authStore.token,
         retryDelay: 5000,

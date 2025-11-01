@@ -5,13 +5,13 @@ import { StateCreator, StoreMutatorIdentifier } from 'zustand';
 // Define the Profile interface
 interface Profile {
     username: string;
-    uid: string;
+    id: string;
     token: string;
     phone: string;
     email: string;
     name: string;
     avatar: string;
-    avatarCollectionId: string;
+    collectionId: string;
     total_points: number;
     upi_id?: string;
     full_name?: string;
@@ -46,13 +46,13 @@ const useProfileStore = create<ProfileState>(
                 set({
                     profile: {
                         username: profileData.username || '',
-                        uid: profileData.uid || '',
+                        id: profileData.id || '',
                         token: profileData.token || '',
                         phone: profileData.phone || '',
                         email: profileData.email || '',
                         name: profileData.name || '',
                         avatar: profileData.avatar || '',
-                        avatarCollectionId: profileData.avatarCollectionId || '',
+                        collectionId: profileData.collectionId || '',
                         total_points: profileData.total_points || 0,
                         upi_id: profileData.upi_id || '',
                         full_name: profileData.full_name || '',

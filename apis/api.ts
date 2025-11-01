@@ -38,7 +38,7 @@ export const fetchUsers = async (
         total_points: item.total_points || 0,
         role: item.role || 'user',
         avatar: item.avatar,
-        avatarCollectionId: item.collectionId,
+        collectionId: item.collectionId,
         phone: item.phone,
     }));
 
@@ -56,7 +56,7 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
     // PocketBase response from getList of 'coupons' collection
     const resultList: ListResult<PocketBaseCoupon> = await pb.collection('coupons').getList(page, PER_PAGE, {
         sort: '-created',
-        expand: 'company', // Expand the company relation to get company details
+        expand: 'company,redeemed_by', // Expand the company relation to get company details
     });
 
     const coupons: Coupon[] = resultList.items.map(item => {
@@ -73,6 +73,7 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
             company: item.company,
             created: item.created,
             updated: item.updated,
+            redeemed_by: item?.expand?.redeemed_by || null,
             // expiryDate: item.expiryDate?.split(' ')[0] || '', // Removed due to missing field
         };
     });

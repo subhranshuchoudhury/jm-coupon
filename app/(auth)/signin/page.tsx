@@ -49,10 +49,10 @@ export default function SignInForm() {
             const record = response.record;
             if (record) {
                 setProfile({
-                    uid: record.id,
+                    id: record.id,
                     email: record.email,
                     avatar: record.avatar,
-                    avatarCollectionId: record.collectionId,
+                    collectionId: record.collectionId,
                     updated: record.updated,
                     name: record.name,
                     token,

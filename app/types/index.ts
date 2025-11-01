@@ -52,7 +52,7 @@ export type User = {
     total_points: number;
     role: 'user' | 'admin' | string;
     avatar?: string;
-    avatarCollectionId?: string; // Stored for image generation
+    collectionId?: string; // Stored for image generation
 };
 
 export type PocketBaseRedeemRequest = {
@@ -122,6 +122,7 @@ export type Coupon = {
     redeemed: boolean;
     created?: string;
     updated?: string;
+    redeemed_by?: User;
 };
 export type Company = {
     id: string;

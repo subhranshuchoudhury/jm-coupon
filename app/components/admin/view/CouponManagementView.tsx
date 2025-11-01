@@ -10,6 +10,7 @@ import QRScannerModal from "../../QRScannerModal";
 import pb from "@/lib/pocketbase";
 import * as XLSX from 'xlsx';
 import { formatDate } from "@/utils";
+import UserAvatar from "../UserAvatar";
 
 
 // Helper function to show the modal by its ID
@@ -51,7 +52,7 @@ export default function CouponManagementView() {
     const { data, isLoading, isError } = useQuery({
         queryKey: ['coupons', currentPage],
         queryFn: () => fetchCoupons(currentPage),
-        refetchInterval: 60000, // Refetch every 60 seconds
+        refetchInterval: 10000, // Refetch every 10 seconds
         refetchOnMount: 'always',
         refetchOnWindowFocus: true,
     });
@@ -415,40 +416,80 @@ export default function CouponManagementView() {
                             <div className="text-error text-center p-8">Error loading coupons. Please check your PocketBase connection.</div>
                         ) : (
                             <table className="table w-full">
+                                {/* Table Head: Added padding, alignment, and whitespace control */}
                                 <thead>
                                     <tr className="border-b border-base-content/10">
-                                        <th>Code</th>
-                                        {/* --- MODIFIED: Added MRP and Company columns --- */}
-                                        <th>Company</th>
-                                        <th className="text-right">MRP</th>
-                                        {/* --- END MODIFIED --- */}
-                                        <th className="text-right">Points Value</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                        <th>Updated</th>
-                                        <th>Actions</th>
+                                        <th className="py-3 px-4 text-left whitespace-nowrap">Code</th>
+                                        <th className="py-3 px-4 text-left">Company</th>
+                                        <th className="py-3 px-4 text-right whitespace-nowrap">MRP</th>
+                                        <th className="py-3 px-4 text-right whitespace-nowrap">Points Value</th>
+                                        <th className="py-3 px-4 text-left whitespace-nowrap">Status</th>
+                                        <th className="py-3 px-4 text-left">Redeemed By</th>
+                                        <th className="py-3 px-4 text-left whitespace-nowrap">Created</th>
+                                        <th className="py-3 px-4 text-left whitespace-nowrap">Updated</th>
+                                        <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.items.map(coupon => (
                                         <tr key={coupon.id} className="hover">
-                                            <td><span className="font-mono badge badge-neutral p-3 font-semibold">{coupon.code}</span></td>
-                                            {/* --- MODIFIED: Show company name and MRP --- */}
-                                            {/* This assumes your 'fetchCoupons' expands the company */}
-                                            <td>{coupon.companyName || 'N/A'}</td>
-                                            <td className="font-mono text-right">{coupon.mrp?.toLocaleString() || 'N/A'}</td>
-                                            {/* --- END MODIFIED --- */}
-                                            <td className="font-mono text-right">{coupon.points.toLocaleString()}</td>
-                                            <td>
+
+                                            {/* Code */}
+                                            <td className="py-3 px-4 align-middle whitespace-nowrap">
+                                                <span className="font-mono badge badge-neutral p-3 font-semibold">{coupon.code}</span>
+                                            </td>
+
+                                            {/* Company */}
+                                            <td className="py-3 px-4 align-middle">
+                                                {coupon.companyName || 'N/A'}
+                                            </td>
+
+                                            {/* MRP */}
+                                            <td className="py-3 px-4 font-mono text-right align-middle whitespace-nowrap">
+                                                {coupon.mrp?.toLocaleString() || 'N/A'}
+                                            </td>
+
+                                            {/* Points Value */}
+                                            <td className="py-3 px-4 font-mono text-right align-middle whitespace-nowrap">
+                                                {coupon.points.toLocaleString()}
+                                            </td>
+
+                                            {/* Status */}
+                                            <td className="py-3 px-4 align-middle whitespace-nowrap">
                                                 {getUsesBadge(coupon.redeemed)}
                                             </td>
-                                            <td>{
-                                                coupon.created && formatDate(coupon.created)
-                                            }</td>
-                                            <td>{
-                                                coupon.updated && formatDate(coupon.updated)
-                                            }</td>
-                                            <td>
+
+                                            {/* --- MODIFIED: "Redeemed By" cell redesigned for readability --- */}
+                                            <td className="py-3 px-4 align-middle">
+                                                {coupon.redeemed_by ? (
+                                                    <div className="flex items-center gap-3">
+                                                        {/* Avatar */}
+                                                        <UserAvatar user={coupon.redeemed_by} size={36} />
+                                                        {/* Stacked Name/Email */}
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold">{coupon.redeemed_by.name}</span>
+                                                            <span className="text-xs text-base-content/70">{coupon.redeemed_by.email}</span>
+                                                            <span className="text-xs text-base-content/70">{coupon.redeemed_by.phone}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-base-content/70">N/A</span>
+                                                )}
+                                            </td>
+                                            {/* --- END MODIFIED --- */}
+
+                                            {/* Created */}
+                                            <td className="py-3 px-4 align-middle whitespace-nowrap">
+                                                {coupon.created && formatDate(coupon.created)}
+                                            </td>
+
+                                            {/* Updated */}
+                                            <td className="py-3 px-4 align-middle whitespace-nowrap">
+                                                {coupon.updated && formatDate(coupon.updated)}
+                                            </td>
+
+                                            {/* Actions */}
+                                            <td className="py-3 px-4 align-middle whitespace-nowrap text-right">
                                                 <div className="join">
                                                     <button
                                                         className="btn btn-sm btn-ghost join-item tooltip tooltip-top"

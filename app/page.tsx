@@ -165,18 +165,18 @@ function App() {
 
   // --- NEW: Fetch Transactions (My Activity / My History) ---
   const { data: allTransactions = [], isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['transactions', profile?.uid],
-    queryFn: () => fetchTransactions(profile!.uid),
-    enabled: !!profile?.uid, // Only run if profile.uid exists
+    queryKey: ['transactions', profile?.id],
+    queryFn: () => fetchTransactions(profile!.id),
+    enabled: !!profile?.id, // Only run if profile.id exists
     refetchInterval: 10000, // Refetch every 10 seconds
     refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // --- NEW: Fetch Redeem Requests ---
   const { data: redeemRequests = [], isLoading: isLoadingRequests } = useQuery({
-    queryKey: ['redeemRequests', profile?.uid],
-    queryFn: () => fetchRedeemRequests(profile!.uid),
-    enabled: !!profile?.uid, // Only run if profile.uid exists
+    queryKey: ['redeemRequests', profile?.id],
+    queryFn: () => fetchRedeemRequests(profile!.id),
+    enabled: !!profile?.id, // Only run if profile.id exists
     refetchInterval: 10000, // Refetch every 10 seconds
     refetchOnWindowFocus: true, // Refetch when window gains focus
   });
@@ -218,9 +218,9 @@ function App() {
       })
 
       // Invalidate queries to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ['redeemRequests', profile!.uid] });
-      queryClient.invalidateQueries({ queryKey: ['userProfile', profile!.uid] }); // To update points
-      queryClient.invalidateQueries({ queryKey: ['transactions', profile!.uid] });
+      queryClient.invalidateQueries({ queryKey: ['redeemRequests', profile!.id] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', profile!.id] }); // To update points
+      queryClient.invalidateQueries({ queryKey: ['transactions', profile!.id] });
 
       // Close modals
       (
@@ -243,12 +243,12 @@ function App() {
 
   // --- NEW: Mutation for updating the user's phone number ---
   const updatePhoneApi = async (newPhone: string) => {
-    if (!profile?.uid) throw new Error("User ID is missing.");
+    if (!profile?.id) throw new Error("User ID is missing.");
     const updateData = {
       "phone": newPhone,
     };
     // Assuming the authenticated user can update their own record in 'users' collection
-    const record = await pb.collection('users').update(profile.uid, updateData);
+    const record = await pb.collection('users').update(profile.id, updateData);
     return record;
   };
 
@@ -420,7 +420,7 @@ function App() {
               <div className="bg-neutral text-neutral-content rounded-full w-24">
                 {/* <User size={48} /> */}
                 {
-                  profile?.avatar ? (<img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.avatarCollectionId}/${profile.uid}/${profile.avatar}`} />) : (<User size={48} />)
+                  pb.authStore.token && profile?.avatar ? (<img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`} />) : (<User size={48} />)
                 }
 
               </div>

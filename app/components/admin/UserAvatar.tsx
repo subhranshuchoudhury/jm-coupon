@@ -3,9 +3,14 @@ import { User } from "@/app/types";
 import pb from "@/lib/pocketbase";
 
 export default function UserAvatar({ user, size }: { user: User, size: number }) {
-    if (user.avatar && user.avatarCollectionId) {
+
+    console.log('Rendering avatar for user:', user);
+
+    if (user.avatar && user.collectionId) {
         // Construct the full avatar URL
-        const avatarUrl = `${pb.baseURL}/api/files/${user.avatarCollectionId}/${user.id}/${user.avatar}`;
+        const avatarUrl = `${pb.baseURL}/api/files/${user.collectionId}/${user.id}/${user.avatar}`;
+
+        console.log('Avatar URL:', avatarUrl);
         return (
             <div className="avatar">
                 <div className="mask mask-squircle w-12 h-12">
