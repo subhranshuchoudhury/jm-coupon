@@ -15,7 +15,7 @@ interface ScannedData {
 
 export default function ScanCouponView() {
     const [couponCode, setCouponCode] = useState('');
-    const [points, setPoints] = useState(0);
+    const [points, setPoints] = useState<number>(0);
     const [userId, setUserId] = useState('');
     const [message, setMessage] = useState('');
     // State to control the visibility of the scanner modal
@@ -57,13 +57,15 @@ export default function ScanCouponView() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!couponCode || points <= 0 || !userId) {
+        if (!couponCode || !points || !userId) {
             setMessage('Please enter a valid code, points value, and a Target User ID.');
             return;
         }
 
+        const data = points >= 0 ? { "total_points+": points } : { "total_points-": Math.abs(points) };
+
         //@ts-ignore
-        userUpdateMutation.mutate({ id: userId, data: { "total_points+": points } });
+        userUpdateMutation.mutate({ id: userId, data });
 
     };
 
@@ -138,12 +140,11 @@ export default function ScanCouponView() {
                                 <label className="label"><span className="label-text font-semibold">Points Value</span></label>
                                 <input
                                     type="number"
-                                    placeholder="e.g., 100"
+                                    placeholder="e.g., 100 or -100"
                                     className="input input-bordered w-full"
                                     value={points}
-                                    onChange={(e) => setPoints(parseInt(e.target.value, 10) || 0)}
+                                    onChange={(e) => setPoints(Number(e.target.value))}
                                     required
-                                    min="1"
                                 />
                             </div>
                             <div className="form-control">
