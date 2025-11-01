@@ -1,12 +1,10 @@
 "use client";
 import pb from "@/lib/pocketbase";
 import { useState } from "react";
-import { setCookie } from 'cookies-next';
+import { setCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 import useProfileStore from "@/stores/profile.store";
-
-// Using lucid-react for sharp, modern icons as requested
-import { Phone, MapPin, Truck, Wrench, ShieldCheck } from 'lucide-react';
+import { Phone, MapPin, ShieldCheck } from "lucide-react";
 
 export default function SignInForm() {
     const { setProfile } = useProfileStore();
@@ -14,6 +12,7 @@ export default function SignInForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // ... (Your handleGoogleSignIn function remains exactly the same) ...
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         setError(null);
@@ -38,7 +37,6 @@ export default function SignInForm() {
                     await pb.collection("users").update(response.record.id, updates);
                 }
             }
-
 
             if (process.env.NODE_ENV === "development") {
                 console.log("Google Sign-In Response:", response);
@@ -89,23 +87,58 @@ export default function SignInForm() {
 
     return (
         <>
-            {/* Main container with a clean, professional background */}
             <div className="relative min-h-screen overflow-hidden flex items-center justify-center bg-gray-100 p-4 font-sans">
 
-                {/* Main Card: Sharp, modern, professional */}
-                <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden my-8">
+                {/* === START: Floating Coins Background === */}
+                {/* We replaced 'animate-float-slow' with our new 'coin-float-slow' class, etc. */}
+                <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+                    <img
+                        src="/icons/coin.png"
+                        alt=""
+                        className="absolute w-20 h-20 opacity-30  rotate-12 coin-float-slow" // CHANGED
+                        style={{ top: '10%', left: '5%', animationDelay: '0s' }}
+                    />
+                    <img
+                        src="/icons/coin.png"
+                        alt=""
+                        className="absolute w-16 h-16 opacity-20  -rotate-12 coin-float" // CHANGED
+                        style={{ top: '20%', left: '80%', animationDelay: '1s' }}
+                    />
+                    <img
+                        src="/icons/coin.png"
+                        alt=""
+                        className="absolute w-12 h-12 opacity-30 rotate-30 coin-float-fast" // CHANGED
+                        style={{ top: '70%', left: '15%', animationDelay: '0.5s' }}
+                    />
+                    <img
+                        src="/icons/coin.png"
+                        alt=""
+                        className="absolute w-24 h-24 opacity-25  coin-float" // CHANGED
+                        style={{ top: '65%', left: '70%', animationDelay: '2s' }}
+                    />
+                    <img
+                        src="/icons/coin.png"
+                        alt=""
+                        className="absolute w-14 h-14 opacity-20 blur-md -rotate-20 coin-float-slow" // CHANGED
+                        style={{ top: '35%', left: '40%', animationDelay: '1.5s' }}
+                    />
+                </div>
+                {/* === END: Floating Coins Background === */}
 
+                <div className="w-full max-w-lg rounded-md bg-transparent shadow-2xl overflow-hidden my-8 relative z-10">
+
+                    {/* ... (Rest of your JSX for the card... logo, button, etc.) ... */}
                     {/* Top Section: Logo & Welcome Message */}
                     <div className="p-8 md:p-12 text-center">
                         {/* Logo Placeholder */}
                         <img
-                            src="/icons/jm_logo_light_crop.png"
+                            src="/icons/jm_logo_tp.png"
                             alt="Jyeshtha Motors Logo"
                             className="mx-auto h-20 w-auto mb-6"
                             // Fallback to hide the broken image icon if the logo isn't found
                             onError={(e) => {
                                 const target = e.currentTarget;
-                                target.style.display = 'none';
+                                target.style.display = "none";
                                 // Optionally, you could show a placeholder text element
                             }}
                         />
@@ -121,7 +154,10 @@ export default function SignInForm() {
                     <div className="px-8 md:px-12">
                         {/* Error Alert - Styled for the new sharp theme */}
                         {error && (
-                            <div role="alert" className="my-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">
+                            <div
+                                role="alert"
+                                className="my-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800"
+                            >
                                 <div className="flex items-center">
                                     <ShieldCheck className="h-5 w-5 shrink-0" />
                                     <span className="ml-3">{error}</span>
@@ -181,9 +217,12 @@ export default function SignInForm() {
 
                         {/* Company Intro */}
                         <p className="text-sm text-gray-700 text-center mb-6">
-                            <strong>JYESHTHA MOTORS</strong> is a trusted name in the automobile ancillary industry, serving customers since <strong>2013</strong>. Based in <strong>Cuttack, Odisha</strong>, we specialize in genuine spare parts for heavy commercial vehicles.
+                            <strong>JYESHTHA MOTORS</strong> is a trusted name in the
+                            automobile ancillary industry, serving customers since{" "}
+                            <strong>2013</strong>. Based in <strong>Cuttack, Odisha</strong>,
+                            we specialize in genuine spare parts for heavy commercial
+                            vehicles.
                         </p>
-
 
                         {/* Contact Info */}
                         <div className="space-y-3 text-center">
@@ -192,7 +231,9 @@ export default function SignInForm() {
                                 className="inline-flex items-center gap-3 text-sm text-gray-800 hover:text-blue-600 transition-colors group"
                             >
                                 <Phone className="h-4 w-4 shrink-0 text-gray-500 group-hover:text-blue-600" />
-                                <span>Contact for issues: <strong>9583967497</strong></span>
+                                <span>
+                                    Contact for issues: <strong>9583967497</strong>
+                                </span>
                             </a>
                             <br />
                             <a
@@ -206,8 +247,48 @@ export default function SignInForm() {
                             </a>
                         </div>
                     </div>
+
                 </div>
             </div>
+
+            {/* === ADD THIS ENTIRE BLOCK === */}
+            <style jsx>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(-8px);
+          }
+          50% {
+            transform: translateY(8px);
+          }
+        }
+
+        /* We have to re-apply the rotation from the className inside the animation,
+          so we use CSS variables to pass it.
+          Unfortunately, styled-jsx doesn't support this easily.
+          
+          A simpler way is to just define the animation and let the
+          Tailwind 'rotate-X' class handle the static rotation.
+          Let's try that.
+        */
+        
+        .coin-float {
+           /* We combine the transform from the keyframe with the rotation from the class */
+           animation: float 6s ease-in-out infinite;
+        }
+        
+        .coin-float-slow {
+           animation: float 8s ease-in-out infinite;
+        }
+
+        .coin-float-fast {
+           animation: float 4s ease-in-out infinite;
+        }
+        
+        /* The 'rotate-X' classes from Tailwind will still work alongside
+           the 'translateY' from the animation, so this is all you need!
+        */
+      `}</style>
+            {/* === END OF BLOCK TO ADD === */}
         </>
     );
 }
