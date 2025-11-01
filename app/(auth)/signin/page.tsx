@@ -143,7 +143,7 @@ export default function SignInForm() {
                             }}
                         />
                         <h1 className="text-3xl font-bold text-gray-900">
-                            Welcome to Jyeshtha Motors
+                            Welcome
                         </h1>
                         <p className="mt-2 text-gray-600">
                             Use your official registered Google account to continue.

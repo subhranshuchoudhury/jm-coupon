@@ -416,15 +416,14 @@ function App() {
 
           {/* Profile content */}
           <div className="flex flex-col items-center py-6">
-            <div className="avatar placeholder mb-4">
-              <div className="bg-neutral text-neutral-content rounded-full w-24">
-                {/* <User size={48} /> */}
-                {
-                  pb.authStore.token && profile?.avatar ? (<img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`} />) : (<User size={48} />)
-                }
-
+            {
+              pb.authStore.token && profile?.avatar && <div className="avatar placeholder mb-4">
+                <div className="bg-neutral text-neutral-content rounded-full w-24">
+                  <img alt='profile' width={48} height={48} src={`${pb.baseURL}/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`} />
+                </div>
               </div>
-            </div>
+            }
+
             <p className="text-xl font-semibold">{profile?.name}</p>
             <p className="text-base-content/70">{profile?.email}</p>
             {profile?.phone && <p className="text-base-content/70 flex items-center gap-1 mt-1"><Phone size={14} />{profile.phone}</p>}
