@@ -1,16 +1,40 @@
 "use client";
 import pb from "@/lib/pocketbase";
-import { useState } from "react";
 import { setCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 import useProfileStore from "@/stores/profile.store";
 import { Phone, MapPin, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 export default function SignInForm() {
     const { setProfile } = useProfileStore();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const isLoadingRef = useRef(isLoading);
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    useEffect(() => {
+        const handleFocus = () => {
+            // If the window regains focus AND we were in a loading state,
+            // it's highly likely the popup was closed.
+            if (isLoadingRef.current) {
+                console.log("Window refocused, resetting loading state.");
+                setIsLoading(false);
+            }
+        };
+
+        // Add the listener
+        window.addEventListener("focus", handleFocus);
+
+        // Clean up the listener when the component unmounts
+        return () => {
+            window.removeEventListener("focus", handleFocus);
+        };
+    }, []); // Empty dependency array ensures this runs only once
 
     // ... (Your handleGoogleSignIn function remains exactly the same) ...
     const handleGoogleSignIn = async () => {
@@ -77,9 +101,15 @@ export default function SignInForm() {
                     }
                 }
             }
-        } catch (err) {
-            console.error("Google Sign-In Error:", err);
-            setError("Failed to sign in with Google. Please try again.");
+        } catch (err: any) {
+            if (err.isAbort) {
+                console.log("Google Sign-In cancelled by user.");
+                // Don't set an error, just let the 'finally' block reset loading
+            } else {
+                // This is a *real* error
+                console.error("Google Sign-In Error:", err);
+                setError("Failed to sign in with Google. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -87,7 +117,7 @@ export default function SignInForm() {
 
     return (
         <>
-            <div className="relative min-h-screen overflow-hidden flex items-center justify-center bg-gray-100 p-4 font-sans">
+            <div className="relative min-h-screen overflow-hidden flex items-center justify-center bg-white p-4 font-sans">
 
                 {/* === START: Floating Coins Background === */}
                 {/* We replaced 'animate-float-slow' with our new 'coin-float-slow' class, etc. */}
@@ -125,7 +155,7 @@ export default function SignInForm() {
                 </div>
                 {/* === END: Floating Coins Background === */}
 
-                <div className="w-full max-w-lg rounded-md bg-transparent shadow-2xl overflow-hidden my-8 relative z-10">
+                <div className="w-full max-w-lg rounded-md bg-transparent overflow-hidden my-8 relative z-10">
 
                     {/* ... (Rest of your JSX for the card... logo, button, etc.) ... */}
                     {/* Top Section: Logo & Welcome Message */}
@@ -173,11 +203,11 @@ export default function SignInForm() {
                         )}
 
                         {/* Button Container */}
-                        <div className="mt-2 mb-6">
+                        <div className="mt-2 mb-6 flex justify-center items-center">
                             <button
                                 onClick={handleGoogleSignIn}
                                 disabled={isLoading}
-                                className="flex w-full items-center justify-center gap-3 rounded-xl bg-blue-600 p-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+                                className="flex w-72 items-center justify-center gap-3 rounded-full bg-blue-600 p-2 text-lg font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
                             >
                                 {isLoading ? (
                                     // Tailwind CSS spinner
@@ -217,7 +247,7 @@ export default function SignInForm() {
                     </div>
 
                     {/* Footer/Info Section */}
-                    <div className="p-8 md:px-12 mt-4 bg-gray-50 border-t border-gray-200">
+                    <div className="p-8 md:px-12 mt-4 bg-transparent border-t border-gray-200">
                         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider text-center mb-4">
                             About Us
                         </h2>
@@ -239,7 +269,7 @@ export default function SignInForm() {
                             >
                                 <Phone className="h-4 w-4 shrink-0 text-gray-500 group-hover:text-blue-600" />
                                 <span>
-                                    Contact for issues: <strong>9583967497</strong>
+                                    <strong>9583967497</strong>
                                 </span>
                             </a>
                             <br />
@@ -250,7 +280,7 @@ export default function SignInForm() {
                                 className="inline-flex items-center gap-3 text-sm text-gray-800 hover:text-blue-600 transition-colors group"
                             >
                                 <MapPin className="h-4 w-4 shrink-0 text-gray-500 group-hover:text-blue-600" />
-                                <span>View our Location on Maps</span>
+                                <span>View on Maps</span>
                             </a>
                         </div>
                     </div>
