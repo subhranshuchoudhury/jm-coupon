@@ -142,11 +142,18 @@ export default function SignInForm() {
                                 // Optionally, you could show a placeholder text element
                             }}
                         />
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        {/* <h1 className="text-3xl font-bold text-gray-900">
                             Welcome
-                        </h1>
-                        <p className="mt-2 text-gray-600">
-                            Use your official registered Google account to continue.
+                        </h1> */}
+                        <div className="flex items-center mt-4">
+                            <div className="grow border-t border-gray-300"></div>
+                            <p className="mx-4 text-xl font-semibold text-gray-700 tracking-wide leading-relaxed">
+                                Jyeshtha Motors
+                            </p>
+                            <div className="grow border-t border-gray-300"></div>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                            Since 2013
                         </p>
                     </div>
 
