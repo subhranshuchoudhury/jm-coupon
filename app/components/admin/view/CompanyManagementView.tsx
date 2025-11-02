@@ -225,7 +225,7 @@ export default function CompanyManagementView() {
                                 type="text"
                                 name="name"
                                 value={nameInput}
-                                className="input input-bordered w-full"
+                                className="input input-bordered w-full lowercase"
                                 required
                                 onChange={(e) => setNameInput(e.target.value)}
                             />

@@ -3,7 +3,7 @@
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2, QrCode, Upload } from "lucide-react"; // --- NEW ---
+import { Edit, Plus, Trash2, QrCode, Upload, Download } from "lucide-react";
 import { useState, useRef } from "react";
 import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
@@ -48,6 +48,12 @@ export default function CouponManagementView() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // --- NEW EXPORT LOGIC: State for Export Modal ---
+    const [exportBatchSize, setExportBatchSize] = useState<number | string>(500);
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportError, setExportError] = useState<string | null>(null);
+    // --- END NEW EXPORT LOGIC ---
+
     // Fetch coupons data
     const { data, isLoading, isError } = useQuery({
         queryKey: ['coupons', currentPage],
@@ -65,7 +71,7 @@ export default function CouponManagementView() {
             const companyList = await pb.collection('companies').getFullList<CompanyData>({
                 fields: 'id, name, conversion_factor',
                 skipTotal: true,
-                sort: 'name'
+                sort: 'name',
             });
             return companyList;
         },
@@ -387,6 +393,94 @@ export default function CouponManagementView() {
     };
     // --- End Bulk Upload Functions ---
 
+    // --- NEW EXPORT LOGIC: Functions for Export Modal ---
+    const handleOpenExportModal = () => {
+        setExportBatchSize(500);
+        setIsExporting(false);
+        setExportError(null);
+        showModal('export_excel_modal');
+    };
+
+    const handleCloseExportModal = () => {
+        closeModal('export_excel_modal');
+        setIsExporting(false);
+        setExportError(null);
+    };
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        setExportError(null);
+
+        const batchNum = parseInt(exportBatchSize.toString(), 10);
+        if (isNaN(batchNum) || batchNum < 500) {
+            setExportError("Batch size must be a number with least value 500.");
+            setIsExporting(false);
+            return;
+        }
+
+        try {
+            // Define a local type for the expanded record
+            type ExpandedCouponRecord = PocketBaseCoupon & {
+                expand?: {
+                    company?: CompanyData;
+                    redeemed_by?: {
+                        id: string;
+                        name: string;
+                        email: string;
+                        phone: string;
+                    }
+                }
+            }
+
+            // Show a message while fetching
+            setExportError(null); // Clear previous errors
+
+            const records = await pb.collection('coupons').getFullList<ExpandedCouponRecord>({
+                batch: batchNum,
+                sort: '-created',
+                expand: 'company,redeemed_by',
+            });
+
+            if (records.length === 0) {
+                setExportError("No coupons found to export.");
+                setIsExporting(false);
+                return;
+            }
+
+            // Map data to a user-friendly format for Excel
+            const dataToExport = records.map(coupon => ({
+                'code': coupon.code,
+                'company': coupon.expand?.company?.name || coupon.company, // Use company name
+                'mrp': coupon.mrp,
+                'points': coupon.points,
+                'status': coupon.redeemed ? 'Redeemed' : 'Available',
+                'redeemed by name': coupon.expand?.redeemed_by?.name || '',
+                'redeemed by email': coupon.expand?.redeemed_by?.email || '',
+                'redeemed by phone': coupon.expand?.redeemed_by?.phone || '',
+                'redeemed on': coupon.timestamp ? formatDate(coupon?.timestamp) : '',
+                'created at': formatDate(coupon.created),
+                'last updated': formatDate(coupon.updated),
+            }));
+
+            // Create worksheet and workbook
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Coupons');
+
+            // Generate filename with date and trigger download
+            const dateStr = new Date().toLocaleString().replaceAll(" ", "_").replaceAll(",", "_").toUpperCase();
+            XLSX.writeFile(wb, `coupons_export_${dateStr}_bs_${batchNum}.xlsx`);
+
+            setIsExporting(false);
+            handleCloseExportModal(); // Close modal on success
+
+        } catch (err: any) {
+            setExportError(err.message || 'An unknown error occurred during export.');
+            setIsExporting(false);
+        }
+    };
+    // --- END NEW EXPORT LOGIC ---
+
 
     return (
         <div className="space-y-6">
@@ -396,6 +490,11 @@ export default function CouponManagementView() {
                     <button className="btn btn-neutral gap-2" onClick={handleOpenBulkModal}>
                         <Upload size={18} /> Bulk Upload
                     </button>
+                    {/* --- MODIFIED: Corrected onClick handler --- */}
+                    <button className="btn btn-success gap-2" onClick={handleOpenExportModal}>
+                        <Download size={18} /> Export Excel
+                    </button>
+                    {/* --- END MODIFIED --- */}
                     <button className="btn btn-secondary gap-2" onClick={() => setIsScannerOpen(true)}>
                         <QrCode size={18} /> Scan QR Code
                     </button>
@@ -425,6 +524,7 @@ export default function CouponManagementView() {
                                         <th className="py-3 px-4 text-right whitespace-nowrap">Points Value</th>
                                         <th className="py-3 px-4 text-left whitespace-nowrap">Status</th>
                                         <th className="py-3 px-4 text-left">Redeemed By</th>
+                                        <th className="py-3 px-4 text-left">Redeemed On</th>
                                         <th className="py-3 px-4 text-left whitespace-nowrap">Created</th>
                                         <th className="py-3 px-4 text-left whitespace-nowrap">Updated</th>
                                         <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
@@ -473,11 +573,14 @@ export default function CouponManagementView() {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-base-content/70">N/A</span>
+                                                    <span className="text-base-content/70">Not Redeemed</span>
                                                 )}
                                             </td>
                                             {/* --- END MODIFIED --- */}
 
+                                            <td className="py-3 px-4 align-middle whitespace-nowrap">
+                                                {coupon.timestamp ? formatDate(coupon.timestamp) : "Not Redeemed"}
+                                            </td>
                                             {/* Created */}
                                             <td className="py-3 px-4 align-middle whitespace-nowrap">
                                                 {coupon.created && formatDate(coupon.created)}
@@ -697,6 +800,66 @@ export default function CouponManagementView() {
                 </form>
             </dialog>
             {/* --- End Bulk Upload Modal --- */}
+
+            {/* --- NEW: Export Excel Modal --- */}
+            <dialog id="export_excel_modal" className="modal">
+                <div className="modal-box">
+                    <h3 className="font-bold text-lg">Export Coupons to Excel</h3>
+
+                    <div className="py-4 space-y-4">
+                        <p className="text-sm">
+                            This will retrieve the most recent coupon records, with the number of records determined by the batch size (default is 500). For example, setting the batch size to 999 will fetch the last 999 records.
+                        </p>
+
+                        <div className="form-control w-full">
+                            <label className="label">
+                                <span className="label-text">Batch Size</span>
+                            </label>
+                            <input
+                                type="number"
+                                className="input input-bordered w-full"
+                                value={exportBatchSize}
+                                onChange={(e) => setExportBatchSize(e.target.value)}
+                                min="100"
+                                max="5000" // Set a reasonable max
+                                step="100"
+                                disabled={isExporting}
+                            />
+                        </div>
+
+                        {/* --- Feedback Area --- */}
+                        {isExporting && (
+                            <div className="alert alert-info">
+                                <span className="loading loading-spinner loading-sm"></span>
+                                Fetching and processing records... Please wait.
+                            </div>
+                        )}
+                        {exportError && (
+                            <div className="alert alert-error">
+                                <span className="font-bold">Error:</span>
+                                <pre className="whitespace-pre-wrap">{exportError}</pre>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="modal-action">
+                        <button type="button" className="btn btn-ghost" onClick={handleCloseExportModal} disabled={isExporting}>
+                            Cancel
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleExport}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Exporting...' : 'Export File'}
+                        </button>
+                    </div>
+                </div>
+                <form method="dialog" className="modal-backdrop">
+                    <button onClick={handleCloseExportModal}>close</button>
+                </form>
+            </dialog>
+            {/* --- END NEW: Export Excel Modal --- */}
 
 
             {/* Render the QR Scanner Modal conditionally */}

@@ -100,6 +100,7 @@ export type PocketBaseCoupon = {
     companyName?: string;
     company?: string;
     mrp?: number;
+    timestamp?: string;
     expand?: any;
 };
 export type PocketBaseCompany = {
@@ -123,6 +124,7 @@ export type Coupon = {
     created?: string;
     updated?: string;
     redeemed_by?: User;
+    timestamp?: string
 };
 export type Company = {
     id: string;

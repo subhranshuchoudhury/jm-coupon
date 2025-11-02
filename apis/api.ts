@@ -74,6 +74,7 @@ export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon
             created: item.created,
             updated: item.updated,
             redeemed_by: item?.expand?.redeemed_by || null,
+            timestamp: item.timestamp
             // expiryDate: item.expiryDate?.split(' ')[0] || '', // Removed due to missing field
         };
     });
@@ -147,7 +148,7 @@ export const deleteCompany = async (id: string) => {
 
 export const createOrUpdateCompany = async ({ id, data }: { id: string | 'new', data: Partial<PocketBaseCompany> }) => {
     const payload: Partial<PocketBaseCompany> = {
-        name: data.name,
+        name: data.name?.toLowerCase(),
         conversion_factor: data.conversion_factor,
     };
 
