@@ -439,6 +439,7 @@ export default function CouponManagementView() {
                 batch: batchNum,
                 sort: '-created',
                 expand: 'company,redeemed_by',
+                requestKey: null // request auto cancellation disabled
             });
 
             if (records.length === 0) {
