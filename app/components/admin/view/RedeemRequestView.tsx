@@ -4,7 +4,7 @@ import { fetchRedeemRequests, updateRedeemRequest } from "@/apis/api";
 import { PocketBaseRedeemRequest, RedeemRequestAdmin, RedeemStatus } from "@/app/types";
 import { formatDate } from "@/utils";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle, Copy, Edit, XCircle } from "lucide-react"; // Import Copy icon
+import { AlertCircle, CheckCircle, Copy, Edit, XCircle } from "lucide-react";
 import { useState } from "react";
 import Pagination from "../../Pagination";
 
@@ -12,9 +12,8 @@ export default function RedeemRequestView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRequest, setSelectedRequest] = useState<RedeemRequestAdmin | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null); // State for toast notification
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-    // Fetch data using React Query
     const { data, isLoading, isError } = useQuery({
         queryKey: ['redeem', currentPage],
         queryFn: () => fetchRedeemRequests(currentPage),
@@ -23,7 +22,6 @@ export default function RedeemRequestView() {
         refetchOnMount: true,
     });
 
-    // Mutation for updating redeem request status/message
     const redeemUpdateMutation = useMutation({
         mutationFn: updateRedeemRequest,
         onSuccess: () => {
@@ -46,7 +44,6 @@ export default function RedeemRequestView() {
         const data: Partial<PocketBaseRedeemRequest> = {
             status: formData.get('status') as RedeemStatus,
             message: formData.get('message') as string,
-            // NOTE: We don't modify points or user relation here.
         };
 
         redeemUpdateMutation.mutate({ id: selectedRequest.id, data });
@@ -62,7 +59,6 @@ export default function RedeemRequestView() {
         }
         setTimeout(() => setToast(null), 3000);
     };
-
 
     const getStatusBadge = (status: RedeemStatus) => {
         switch (status.toLowerCase()) {
@@ -96,24 +92,22 @@ export default function RedeemRequestView() {
                         ) : isError || !data ? (
                             <div className="text-error text-center p-8">Error loading requests. Please check your PocketBase connection.</div>
                         ) : (
-                            <table className="table w-full">
+                            <table className="table w-full min-w-[800px] lg:min-w-full">
                                 <thead>
                                     <tr className="border-b border-base-content/10">
-                                        {/* Updated User Column Header */}
-                                        <th>User Details</th>
-                                        <th>Reward Title</th>
-                                        <th className="text-right">Points</th>
-                                        <th>Status</th>
-                                        <th>Date</th>
-                                        <th className="w-1/6 text-center">Actions</th>
+                                        <th className="min-w-64">User Details</th>
+                                        <th className="min-w-48">Reward Title</th>
+                                        <th className="text-right min-w-24 whitespace-nowrap">Points</th>
+                                        <th className="whitespace-nowrap">Status</th>
+                                        <th className="min-w-32 whitespace-nowrap">Requested On</th>
+                                        <th className="text-center min-w-36">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.items.map(req => (
                                         <tr key={req.id} className="hover">
-                                            {/* Updated User Cell Content */}
                                             <td>
-                                                <div className="font-semibold">{req.userName} ({req.full_name})</div>
+                                                <div className="font-semibold">{req.userName} ({req?.full_name?.toUpperCase()})</div>
                                                 <div className="text-xs opacity-70">
                                                     ID: <span className="font-mono">{req.userId}</span>
                                                 </div>
@@ -129,9 +123,9 @@ export default function RedeemRequestView() {
                                                 </div>
                                             </td>
                                             <td>{req.rewardTitle}</td>
-                                            <td className="font-mono text-right">{req.points.toLocaleString()}</td>
-                                            <td>{getStatusBadge(req.status)}</td>
-                                            <td>{formatDate(req.date)}</td>
+                                            <td className="font-mono text-right whitespace-nowrap">{req.points.toLocaleString()}</td>
+                                            <td className="whitespace-nowrap">{getStatusBadge(req.status)}</td>
+                                            <td className="whitespace-nowrap">{formatDate(req.date)}</td>
                                             <td className="text-center">
                                                 <button
                                                     className="btn btn-sm btn-primary tooltip tooltip-top"
@@ -159,7 +153,6 @@ export default function RedeemRequestView() {
                 </div>
             </div>
 
-            {/* Redeem Modify Modal */}
             <dialog id="redeem_modify_modal" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg">Modify Request: {selectedRequest?.rewardTitle}</h3>
