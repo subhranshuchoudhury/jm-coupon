@@ -159,6 +159,16 @@ function App() {
         phoneModal.showModal();
       }
     }
+
+    if (profile && profile.role === 'admin') {
+      // The modal should only open automatically once.
+      // We use a safe check to ensure the DOM element exists before calling showModal
+      const profileModal = document.getElementById('profile_modal') as HTMLDialogElement;
+      if (profileModal) {
+        profileModal.showModal();
+      }
+    }
+
   }, [profile]); // Rerun whenever the profile object changes
 
   // --- REMOVED `redeemRequests` state ---
@@ -530,7 +540,7 @@ function App() {
                 <button
                   className="btn btn-info btn-outline w-full"
                   onClick={() => {
-                    router.push("/admin");
+                    router.replace("/admin");
                   }}
                 >
                   <ShieldUser size={18} className="mr-2" />

@@ -8,7 +8,8 @@ import {
     Ticket,
     QrCode,
     Menu, UserCircle,
-    LogOut, Building2
+    LogOut, Building2,
+    Home
 } from 'lucide-react';
 import {
     useQuery
@@ -73,6 +74,17 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
                     <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-1 p-2 shadow bg-base-200 rounded-box w-52">
                         {/* <li><a>Profile (Not implemented)</a></li>
                         <li><a>Settings (Not implemented)</a></li> */}
+                        <li className='mb-2'>
+                            <button
+                                className="btn btn-outline btn-info"
+                                onClick={() => {
+                                    router.replace("/");
+                                }}
+                            >
+                                <Home size={18} className="mr-2" />
+                                Home
+                            </button>
+                        </li>
                         <li>
                             <button
                                 className="btn btn-outline btn-error"
@@ -81,7 +93,7 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
                                     deleteCookie('pb_auth');
                                     deleteCookie('role');
                                     removeProfile();
-                                    router.refresh();
+                                    router.replace("/signin");
                                 }}
                             >
                                 <LogOut size={18} className="mr-2" />
