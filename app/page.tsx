@@ -53,7 +53,7 @@ const formatDate = (isoDate: string) => {
 
 /**
  * Fetches all transactions (earn/redeem) for a user
- */
+*/
 const fetchTransactions = async (userId: string): Promise<Transaction[]> => {
   if (!userId) return [];
   const resultList = await pb
@@ -116,7 +116,13 @@ function App() {
   const { profile, updateProfile, removeProfile } = useProfileStore();
 
   // --- REMOVED `totalPoints` state, will use `profile.total_points` directly ---
+
+  // --- MODIFIED: State for global alert modal ---
   const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setAlertTitle] = useState('Alert');
+  const [isSuccessAlert, setIsSuccessAlert] = useState(false);
+  // --- END MODIFICATION ---
+
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
   // --- New state for redemption form ---
@@ -157,11 +163,25 @@ function App() {
 
   // --- REMOVED `redeemRequests` state ---
 
-  // Helper function to show the global alert modal
-  const showAlert = (message: string) => {
-    setAlertMessage(message);
+  // --- MODIFIED: Helper function to show the global alert modal ---
+  const showAlert = (message: string, title: string = 'Alert') => {
+    const isSuccess = message.startsWith('🎉'); // Check for the success emoji
+
+    setIsSuccessAlert(isSuccess);
+
+    if (isSuccess) {
+      // If it's a success message, set a success title and clean the emoji
+      setAlertTitle(title === 'Alert' ? 'Success!' : title);
+      setAlertMessage(message.replace('🎉', '').trim());
+    } else {
+      // Otherwise, use the standard title and message
+      setAlertTitle(title);
+      setAlertMessage(message);
+    }
+
     (document.getElementById('alert_modal') as HTMLDialogElement)?.showModal();
   };
+  // --- END MODIFICATION ---
 
   // --- NEW: Fetch Transactions (My Activity / My History) ---
   const { data: allTransactions = [], isLoading: isLoadingHistory } = useQuery({
@@ -208,7 +228,12 @@ function App() {
   const { mutate: createRedeemRequest, isPending: isRedeeming } = useMutation({
     mutationFn: createRedeemRequestApi,
     onSuccess: () => {
-      showAlert(`Successfully submitted request for "${selectedReward!.title}"!`);
+      // --- MODIFIED: Use '🎉' to trigger success UI ---
+      showAlert(
+        `🎉 Successfully submitted request for "${selectedReward!.title}"!`,
+        'Redemption Submitted!'
+      );
+      // --- END MODIFICATION ---
 
       // Optimistic update of profile points and form fields in store
       updateProfile({
@@ -236,7 +261,9 @@ function App() {
     onError: (error: any) => {
       const errorMessage =
         error?.data?.message || error.message || 'An unknown error occurred.';
-      showAlert(`Redemption failed: ${errorMessage}`);
+      // --- MODIFIED: Add a title ---
+      showAlert(`Redemption failed: ${errorMessage}`, 'Redemption Failed');
+      // --- END MODIFICATION ---
     },
   }
   );
@@ -263,7 +290,9 @@ function App() {
       // Close the modal
       (document.getElementById('phone_prompt_modal') as HTMLDialogElement)?.close();
 
-      showAlert('Phone number successfully updated!');
+      // --- MODIFIED: Use '🎉' to trigger success UI ---
+      showAlert('🎉 Phone number successfully updated!', 'Update Successful');
+      // --- END MODIFICATION ---
 
       // Clear input state
       // setPhoneInput(''); // Keep the updated value in state
@@ -271,7 +300,9 @@ function App() {
     onError: (error: any) => {
       const errorMessage =
         error?.data?.message || error.message || 'An unknown error occurred while updating.';
-      showAlert(`Update failed: ${errorMessage}`);
+      // --- MODIFIED: Add a title ---
+      showAlert(`Update failed: ${errorMessage}`, 'Update Failed');
+      // --- END MODIFICATION ---
     },
   });
 
@@ -282,7 +313,9 @@ function App() {
     // Validation: Check for 10 digits
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phoneInput.trim())) {
-      showAlert('Please enter a valid 10-digit phone number.');
+      // --- MODIFIED: Add a title ---
+      showAlert('Please enter a valid 10-digit phone number.', 'Invalid Input');
+      // --- END MODIFICATION ---
       return;
     }
 
@@ -296,7 +329,12 @@ function App() {
   const handleRedeemClick = (reward: Reward) => {
     // --- NEW: Pre-redemption check for phone number ---
     if (!profile?.phone) {
-      showAlert('Please complete your profile by providing your phone number before redeeming a reward.');
+      // --- MODIFIED: Add a title ---
+      showAlert(
+        'Please complete your profile by providing your phone number before redeeming a reward.',
+        'Profile Incomplete'
+      );
+      // --- END MODIFICATION ---
       // Open the phone prompt modal
       const phoneModal = document.getElementById('phone_prompt_modal') as HTMLDialogElement;
       if (phoneModal) {
@@ -320,7 +358,9 @@ function App() {
 
     // --- Validation ---
     if (!upiId.trim()) {
-      showAlert('UPI ID is mandatory. Please enter a valid UPI ID.');
+      // --- MODIFIED: Add a title ---
+      showAlert('UPI ID is mandatory. Please enter a valid UPI ID.', 'Input Required');
+      // --- END MODIFICATION ---
       return; // Stop execution, keep modal open
     }
     // --- End Validation ---
@@ -334,7 +374,9 @@ function App() {
         name: fullName,
       });
     } else {
-      showAlert('Not enough points to redeem this reward.');
+      // --- MODIFIED: Add a title ---
+      showAlert('Not enough points to redeem this reward.', 'Insufficient Points');
+      // --- END MODIFICATION ---
       // Don't close modal, let user see the error
     }
   };
@@ -393,21 +435,73 @@ function App() {
         </form>
       </dialog>
 
-      {/* Global Alert Modal (Unchanged) */}
+      {/* --- MODIFIED: Global Alert Modal --- */}
       <dialog id="alert_modal" className="modal">
+        {/* --- NEW: Animation Definition ---
+    Add this <style> tag to define your @keyframes.
+    It's "inline" with your component and will be
+    available to your elements.
+  */}
+        <style>
+          {`
+      @keyframes pulseFlip {
+        0% {
+          transform: scale(1) rotateY(0deg);
+        }
+        50% {
+          transform: scale(1.15) rotateY(180deg); /* Scales UP to 115% at the half-way flip */
+        }
+        100% {
+          transform: scale(1) rotateY(360deg); /* Scales back to normal at the end */
+        }
+      }
+    `}
+        </style>
+
         <div className="modal-box">
-          <h3 className="font-bold text-lg">Alert</h3>
-          <p className="py-4">{alertMessage}</p>
-          <div className="modal-action">
-            <form method="dialog">
-              <button className="btn btn-primary">OK</button>
-            </form>
-          </div>
+          {isSuccessAlert ? (
+            // --- NEW: Success UI ---
+            <div className="flex flex-col items-center text-center py-4">
+              {/* Use the provided image */}
+              <img
+                src="/icons/coin.png"
+                alt="Success"
+                className="w-24 h-24 mb-4"
+                // --- NEW: Apply the animation using inline style ---
+                style={{
+                  animation: 'pulseFlip 2s linear infinite',
+                }}
+              />
+              {/* Use 'success' color from the theme */}
+              <h3 className="font-bold text-lg text-success mb-2">
+                {alertTitle}
+              </h3>
+              <p className="py-2">{alertMessage}</p>
+              <div className="modal-action mt-4">
+                <form method="dialog">
+                  {/* Use 'success' button style */}
+                  <button className="btn btn-success">OK</button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            // --- Default Alert UI ---
+            <>
+              <h3 className="font-bold text-lg">{alertTitle}</h3>
+              <p className="py-4">{alertMessage}</p>
+              <div className="modal-action">
+                <form method="dialog">
+                  <button className="btn btn-primary">OK</button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
         <form method="dialog" className="modal-backdrop">
           <button>close</button>
         </form>
       </dialog>
+      {/* --- END MODIFICATION --- */}
 
       {/* Profile Modal (Unchanged) */}
       <dialog id="profile_modal" className="modal">
@@ -472,7 +566,7 @@ function App() {
         </form>
       </dialog>
 
-      {/* --- NEW: Phone Number Prompt Modal --- */}
+      {/* --- NEW: Phone Number Prompt Modal (Unchanged) --- */}
       <dialog id="phone_prompt_modal" className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg text-warning flex items-center gap-2">

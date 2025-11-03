@@ -78,6 +78,8 @@ export default function HomePage({
             queryClient.invalidateQueries({
                 queryKey: ['transactions', profile?.id],
             });
+
+            setManualCode(''); // Clear the manual code input regardless
         },
         onError: (error: any) => {
             // This is a network error or HTTP 4xx/5xx
@@ -92,10 +94,9 @@ export default function HomePage({
 
             showAlert(errorMessage);
         },
-        onSettled: () => {
-            // This runs after success OR error
-            setManualCode(''); // Clear the manual code input regardless
-        },
+        // onSettled: () => {
+        //     // This runs after success OR error
+        // },
     }
     );
 
