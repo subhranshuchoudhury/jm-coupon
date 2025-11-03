@@ -116,7 +116,7 @@ export default function ScanCouponView() {
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
                         <h2 className="card-title text-2xl">Manual Point / Coupon Assignment</h2>
-                        <p className="text-sm text-base-content/70">Manually assign a point value and identifier to a specific user via their PocketBase ID.</p>
+                        <p className="text-sm text-base-content/70">Manually assign a point value and identifier to a specific user via their ID.</p>
 
                         {message && (
                             <div className={`alert ${manualPointsMutation.isSuccess ? 'alert-success' : manualPointsMutation.isError ? 'alert-error' : 'alert-info'} mt-4`}>
@@ -148,7 +148,7 @@ export default function ScanCouponView() {
                                 />
                             </div>
                             <div className="form-control">
-                                <label className="label"><span className="label-text font-semibold">Target User ID (PocketBase ID)</span></label>
+                                <label className="label"><span className="label-text font-semibold">Target User ID</span></label>
                                 <input
                                     type="text"
                                     placeholder="e.g., df2iub1g99ls990"

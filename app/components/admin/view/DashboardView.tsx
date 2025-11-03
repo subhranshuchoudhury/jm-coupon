@@ -9,21 +9,24 @@ export default function DashboardView() {
     const { data: userData } = useQuery({
         queryKey: ['users', 1],
         queryFn: () => fetchUsers(1),
-        staleTime: 60000,
+        refetchInterval: 10000,
+        refetchOnMount: true
     });
 
     // Fetch pending requests count for the dashboard
     const { data: pendingRequestsData, isLoading: isLoadingRequests } = useQuery({
         queryKey: ['allRedeemRequestsForCount'],
         queryFn: () => pb.collection('redeem_requests').getFullList({ filter: 'status = "pending"' }),
-        staleTime: 5000,
+        refetchInterval: 5000,
+        refetchOnMount: true
     });
 
     // Fetch total coupons for the dashboard
     const { data: couponData } = useQuery({
         queryKey: ['coupons', 1],
         queryFn: () => fetchCoupons(1),
-        staleTime: 60000,
+        refetchInterval: 10000,
+        refetchOnMount: true
     });
 
     const totalUsers = userData?.totalItems ?? '...';
