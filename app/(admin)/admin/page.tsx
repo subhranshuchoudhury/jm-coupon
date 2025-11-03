@@ -223,8 +223,21 @@ function Admin() {
                         </li>
                     </ul>
                     {/* Footer for desktop sidebar */}
-                    <footer className="p-4 border-t border-base-content/10 text-xs text-center text-base-content/50">
-                        JM Reward App © {new Date().getFullYear()}
+                    <footer className="p-4 border-t border-base-content/10 text-xs text-center text-base-content/80">
+                        <div>
+                            JM Reward App © {new Date().getFullYear()}
+                        </div>
+
+                        <div className="mt-1 text-[10px] text-base-content/50">
+                            Made with ❤️ by <a
+                                href="https://wa.me/918249587552"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline hover:text-base-content/80"
+                            >
+                                SSC
+                            </a>
+                        </div>
                     </footer>
                 </div>
             </div>
