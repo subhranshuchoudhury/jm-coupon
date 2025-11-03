@@ -9,7 +9,8 @@ import {
     QrCode,
     Menu, UserCircle,
     LogOut, Building2,
-    Home
+    Home,
+    DatabaseZap
 } from 'lucide-react';
 import {
     useQuery
@@ -221,6 +222,17 @@ function Admin() {
                             <a onClick={() => handleSetView('scan')} className={activeView === 'scan' ? 'active font-semibold' : ''}>
                                 <QrCode size={18} />
                                 Assign Coupons
+                            </a>
+                        </li>
+                        <li className='text-base-content/20 hover:text-base-content'>
+                            <a
+                                href={`${process.env.NEXT_PUBLIC_POCKETBASE_URL}/_`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-success"
+                            >
+                                <DatabaseZap size={18} />
+                                Database
                             </a>
                         </li>
                     </ul>
