@@ -127,7 +127,7 @@ function Admin() {
         users: 'User Management',
         redeem: 'Redeem Requests',
         coupons: 'Coupon Management',
-        scan: 'Scan / Enter Coupon',
+        scan: 'Assign Coupons',
         companies: 'Company Management',
     };
 
@@ -200,9 +200,11 @@ function Admin() {
                                 Users
                             </a>
                         </li>
+
                         <li>
                             <RedeemRequestsMenuItem handleSetView={handleSetView} activeView={activeView} />
                         </li>
+
                         <li>
                             <a onClick={() => handleSetView('coupons')} className={activeView === 'coupons' ? 'active font-semibold' : ''}>
                                 <Ticket size={18} />
@@ -218,7 +220,7 @@ function Admin() {
                         <li>
                             <a onClick={() => handleSetView('scan')} className={activeView === 'scan' ? 'active font-semibold' : ''}>
                                 <QrCode size={18} />
-                                Scan Coupon (Users)
+                                Assign Coupons
                             </a>
                         </li>
                     </ul>
@@ -257,17 +259,15 @@ function RedeemRequestsMenuItem({ handleSetView, activeView }: { handleSetView: 
     const pendingCount = allRequests.length;
 
     return (
-        <li>
-            <a onClick={() => handleSetView('redeem')} className={activeView === 'redeem' ? 'active font-semibold' : ''}>
-                <Gift size={18} />
-                Redeem Requests
-                {isLoading ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                ) : (
-                    pendingCount > 0 && <span className="badge badge-warning">{pendingCount}</span>
-                )}
-            </a>
-        </li>
+        <a onClick={() => handleSetView('redeem')} className={activeView === 'redeem' ? 'active font-semibold' : ''}>
+            <Gift size={18} />
+            Redeem Requests
+            {isLoading ? (
+                <span className="loading loading-spinner loading-xs"></span>
+            ) : (
+                pendingCount > 0 && <span className="badge badge-warning">{pendingCount}</span>
+            )}
+        </a>
     );
 }
 
