@@ -89,10 +89,10 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
                         <li>
                             <button
                                 className="btn btn-outline btn-error"
-                                onClick={() => {
+                                onClick={async () => {
                                     pb.authStore.clear();
-                                    deleteCookie('pb_auth');
-                                    deleteCookie('role');
+                                    await deleteCookie('pb_auth');
+                                    await deleteCookie('role');
                                     removeProfile();
                                     router.replace("/signin");
                                 }}

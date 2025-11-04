@@ -530,7 +530,7 @@ function App() {
 
             <p className="text-xl font-semibold">{profile?.name}</p>
             <p className="text-base-content/70">{profile?.email}</p>
-            {profile?.phone && <p className="text-base-content/70 flex items-center gap-1 mt-1"><Phone size={14} />{profile.phone}</p>}
+            {profile?.phone ? <p className="text-base-content/70 flex items-center gap-1 mt-1"><Phone size={14} />{profile.phone}</p> : null}
           </div>
 
           {/* Action Buttons */}
@@ -552,10 +552,10 @@ function App() {
           <div className="space-y-2">
             <button
               className="btn btn-outline btn-error w-full"
-              onClick={() => {
+              onClick={async () => {
                 pb.authStore.clear();
-                deleteCookie('pb_auth');
-                deleteCookie('role');
+                await deleteCookie('pb_auth');
+                await deleteCookie('role');
                 removeProfile();
                 router.refresh();
               }}
@@ -617,13 +617,13 @@ function App() {
               )}
             </button>
             {/* Conditional Close button (only show if profile.phone exists, otherwise user MUST enter it) */}
-            {profile?.phone && (
+            {profile?.phone ? (
               <form method="dialog">
                 <button className="btn btn-ghost" disabled={isUpdatingPhone}>
                   Cancel
                 </button>
               </form>
-            )}
+            ) : null}
           </div>
         </div>
         {/* Backdrop only closes if profile.phone exists */}
