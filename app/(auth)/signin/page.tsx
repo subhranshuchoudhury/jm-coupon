@@ -89,6 +89,7 @@ export default function SignInForm() {
                 await setCookie("pb_auth", token, {
                     maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
                 });
+
                 await setCookie("role", record.role ?? "user", {
                     maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
                 });

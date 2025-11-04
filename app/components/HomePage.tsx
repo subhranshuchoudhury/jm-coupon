@@ -127,12 +127,22 @@ export default function HomePage({
             maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
         });
 
+        await setCookie("role", record.role ?? "user", {
+            maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
+        });
+
         return {
-            total_points: record.total_points || 0,
-            email: record.email,
-            name: record.name,
             id: record.id,
+            email: record.email,
+            avatar: record.avatar,
+            collectionId: record.collectionId,
+            updated: record.updated,
+            name: record.name,
+            token,
+            username: record.id,
+            phone: record.phone,
             role: record.role,
+            total_points: record.total_points || 0,
         };
     };
 

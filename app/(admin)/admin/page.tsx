@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     LayoutDashboard,
     Users,
@@ -25,7 +25,7 @@ import UserManagementView from '@/app/components/admin/view/UserManagementView';
 import ScanCouponView from '@/app/components/admin/view/ScanCouponView';
 import CouponManagementView from '@/app/components/admin/view/CouponManagementView';
 import RedeemRequestView from '@/app/components/admin/view/RedeemRequestView';
-import { deleteCookie } from 'cookies-next';
+import { deleteCookie, setCookie } from 'cookies-next';
 import { useRouter } from 'next/navigation';
 import CompanyManagementView from '@/app/components/admin/view/CompanyManagementView';
 
@@ -113,6 +113,9 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
  * Main Admin Panel Component
  */
 function Admin() {
+
+    const router = useRouter();
+    const { profile, updateProfile, removeProfile } = useProfileStore();
     const [activeView, setActiveView] = useState<AdminView>('dashboard');
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -151,6 +154,62 @@ function Admin() {
                 return <DashboardView />;
         }
     };
+
+    const fetchProfileRefresh = async () => {
+        const { record, token } = await pb.collection('users').authRefresh();
+
+        await setCookie('pb_auth', token, {
+            maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
+        });
+
+        await setCookie("role", record.role ?? "user", {
+            maxAge: 1000 * 60 * 60 * 24 * 365, // 365 days
+        });
+
+        return {
+            id: record.id,
+            email: record.email,
+            avatar: record.avatar,
+            collectionId: record.collectionId,
+            updated: record.updated,
+            name: record.name,
+            token,
+            username: record.id,
+            phone: record.phone,
+            role: record.role,
+            total_points: record.total_points || 0,
+        };
+    };
+
+    // --- Periodic Profile Refresh ---
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ['userProfile', profile?.id],
+        queryFn: fetchProfileRefresh,
+        // enabled: !!pb.authStore.token,
+        retryDelay: 5000,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        refetchInterval: 10000,
+    });
+
+
+    useEffect(() => {
+        if (data) {
+            updateProfile(data);
+        }
+    }, [data]);
+
+    useEffect(() => {
+        // Guard against different error shapes by using a type assertion / runtime check
+        if (isError && (error as any)?.status === 401) {
+            pb.authStore.clear();
+            removeProfile();
+            deleteCookie('pb_auth');
+            deleteCookie('role');
+            router.replace('/signin');
+        }
+    }, [isError, error]);
+
 
     return (
         <div className="drawer lg:drawer-open min-h-screen bg-base-200">
@@ -282,10 +341,6 @@ function RedeemRequestsMenuItem({ handleSetView, activeView }: { handleSetView: 
         </a>
     );
 }
-
-
-
-
 
 
 export default Admin;

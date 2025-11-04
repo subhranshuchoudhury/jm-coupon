@@ -190,15 +190,15 @@ export default function UserManagementView() {
                         ) : data.items.length === 0 ? (
                             <div className="text-info text-center p-8">No users found matching your search criteria.</div>
                         ) : (
-                            <table className="table w-full">
+                            <table className="table w-full min-w-[900px] lg:min-w-full">
                                 <thead>
                                     <tr className="border-b border-base-content/10">
-                                        <th>Name / ID</th>
-                                        <th>Email</th>
-                                        <th>Phone</th> {/* New Header */}
-                                        <th className="text-right">Total Points</th>
-                                        <th>Role</th>
-                                        <th className="w-1/6 text-center">Actions</th>
+                                        <th className="min-w-64">Name / ID</th>
+                                        <th className="min-w-52">Email</th>
+                                        <th className="min-w-32 whitespace-nowrap">Phone</th>
+                                        <th className="text-right min-w-36 whitespace-nowrap">Total Points</th>
+                                        <th className="min-w-24 whitespace-nowrap">Role</th>
+                                        <th className="text-center min-w-32">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -206,7 +206,6 @@ export default function UserManagementView() {
                                         <tr key={user.id} className="hover">
                                             <td>
                                                 <div className="flex items-center gap-3">
-                                                    {/* Assuming UserAvatar component exists and works */}
                                                     <UserAvatar user={user} size={48} />
                                                     <div>
                                                         <div className="font-bold">{user.name}</div>
@@ -233,10 +232,9 @@ export default function UserManagementView() {
                                                     <Copy size={12} />
                                                 </button>
                                             </td>
-                                            <td> {/* New Field */}
-                                                {/* Fallback for null/undefined phone */}
+                                            {/* MODIFIED: Added whitespace-nowrap to the cell */}
+                                            <td className="whitespace-nowrap">
                                                 {(user as any).phone || 'N/A'}
-                                                {/* Only show copy button if phone exists */}
                                                 {(user as any).phone ? (
                                                     <button
                                                         className="btn btn-xs btn-ghost btn-circle"
@@ -247,8 +245,12 @@ export default function UserManagementView() {
                                                     </button>
                                                 ) : null}
                                             </td>
-                                            <td className="font-mono text-right font-semibold">{user.total_points.toLocaleString()}</td>
-                                            <td>
+                                            {/* MODIFIED: Added whitespace-nowrap to the cell */}
+                                            <td className="font-mono text-right font-semibold whitespace-nowrap">
+                                                {user.total_points.toLocaleString()}
+                                            </td>
+                                            {/* MODIFIED: Added whitespace-nowrap to the cell */}
+                                            <td className="whitespace-nowrap">
                                                 <span className={`badge ${user.role === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>
                                                     {user.role}
                                                 </span>
