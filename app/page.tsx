@@ -155,19 +155,19 @@ function App() {
       // The modal should only open automatically once.
       // We use a safe check to ensure the DOM element exists before calling showModal
       const phoneModal = document.getElementById('phone_prompt_modal') as HTMLDialogElement;
-      if (phoneModal) {
+      if (phoneModal && !phoneModal.open) {
         phoneModal.showModal();
       }
     }
 
-    if (profile && profile.role === 'admin') {
-      // The modal should only open automatically once.
-      // We use a safe check to ensure the DOM element exists before calling showModal
-      const profileModal = document.getElementById('profile_modal') as HTMLDialogElement;
-      if (profileModal) {
-        profileModal.showModal();
-      }
-    }
+    // if (profile && profile.role === 'admin') {
+    //   // The modal should only open automatically once.
+    //   // We use a safe check to ensure the DOM element exists before calling showModal
+    //   const profileModal = document.getElementById('profile_modal') as HTMLDialogElement;
+    //   if (profileModal) {
+    //     profileModal.showModal();
+    //   }
+    // }
 
   }, [profile]); // Rerun whenever the profile object changes
 
@@ -300,8 +300,7 @@ function App() {
       // Close the modal
       (document.getElementById('phone_prompt_modal') as HTMLDialogElement)?.close();
 
-      // --- MODIFIED: Use '🎉' to trigger success UI ---
-      showAlert('🎉 Phone number successfully updated!', 'Update Successful');
+      showAlert('✅ Phone number successfully updated!', 'Update Successful');
       // --- END MODIFICATION ---
 
       // Clear input state
@@ -474,7 +473,7 @@ function App() {
             <div className="flex flex-col items-center text-center py-4">
               {/* Use the provided image */}
               <img
-                src="/icons/coin.png"
+                src="/icons/indian-rupee.png"
                 alt="Success"
                 className="w-24 h-24 mb-4"
                 // --- NEW: Apply the animation using inline style ---

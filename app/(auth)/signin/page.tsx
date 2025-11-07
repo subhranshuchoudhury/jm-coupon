@@ -4,7 +4,7 @@ import { setCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 import useProfileStore from "@/stores/profile.store";
 import { Phone, MapPin, ShieldCheck } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react"; // Removed useRef
 
 export default function SignInForm() {
     const { setProfile } = useProfileStore();
@@ -12,31 +12,11 @@ export default function SignInForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const isLoadingRef = useRef(isLoading);
-    useEffect(() => {
-        isLoadingRef.current = isLoading;
-    }, [isLoading]);
+    // --- We have removed the isLoadingRef ---
+    // --- We have removed the window.addEventListener("focus") useEffect ---
+    // This is because the try/catch/finally block already handles
+    // all scenarios, including the user closing the popup (err.isAbort).
 
-    useEffect(() => {
-        const handleFocus = () => {
-            // If the window regains focus AND we were in a loading state,
-            // it's highly likely the popup was closed.
-            if (isLoadingRef.current) {
-                console.log("Window refocused, resetting loading state.");
-                setIsLoading(false);
-            }
-        };
-
-        // Add the listener
-        window.addEventListener("focus", handleFocus);
-
-        // Clean up the listener when the component unmounts
-        return () => {
-            window.removeEventListener("focus", handleFocus);
-        };
-    }, []); // Empty dependency array ensures this runs only once
-
-    // ... (Your handleGoogleSignIn function remains exactly the same) ...
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         setError(null);
@@ -105,26 +85,32 @@ export default function SignInForm() {
         } catch (err: any) {
             if (err.isAbort) {
                 console.log("Google Sign-In cancelled by user.");
-                // Don't set an error, just let the 'finally' block reset loading
+                // User closed the popup.
+                // We don't set an error, and the 'finally' block
+                // will correctly reset the loading state.
             } else {
                 // This is a *real* error
                 console.error("Google Sign-In Error:", err);
                 setError("Failed to sign in with Google. Please try again.");
             }
         } finally {
+            // This will NOW wait until the promise is
+            // resolved (success), aborted (user cancel), or
+            // rejected (real error).
             setIsLoading(false);
         }
     };
 
     return (
         <>
+            {/* ... Your entire JSX remains unchanged ... */}
             <div className="relative min-h-screen overflow-hidden flex items-center justify-center bg-white p-4 font-sans">
 
                 {/* === START: Floating Coins Background === */}
                 {/* We replaced 'animate-float-slow' with our new 'coin-float-slow' class, etc. */}
                 <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
                     <img
-                        src="/icons/coin.png"
+                        src="/icons/indian-rupee.png"
                         alt=""
                         className="absolute w-20 h-20 opacity-30  rotate-12 coin-float-slow" // CHANGED
                         style={{ top: '10%', left: '5%', animationDelay: '0s' }}
@@ -142,7 +128,7 @@ export default function SignInForm() {
                         style={{ top: '70%', left: '15%', animationDelay: '0.5s' }}
                     />
                     <img
-                        src="/icons/coin.png"
+                        src="/icons/indian-rupee.png"
                         alt=""
                         className="absolute w-24 h-24 opacity-25  coin-float" // CHANGED
                         style={{ top: '65%', left: '70%', animationDelay: '2s' }}
@@ -154,12 +140,9 @@ export default function SignInForm() {
                         style={{ top: '35%', left: '40%', animationDelay: '1.5s' }}
                     />
                 </div>
-                {/* === END: Floating Coins Background === */}
 
                 <div className="w-full max-w-lg rounded-md bg-transparent overflow-hidden my-8 relative z-10">
-
-                    {/* ... (Rest of your JSX for the card... logo, button, etc.) ... */}
-                    {/* Top Section: Logo & Welcome Message */}
+                    {/* ... logo ... */}
                     <div className="p-8 md:p-12 text-center">
                         {/* Logo Placeholder */}
                         <img
@@ -325,7 +308,7 @@ export default function SignInForm() {
         /* The 'rotate-X' classes from Tailwind will still work alongside
            the 'translateY' from the animation, so this is all you need!
         */
-      `}</style>
+            `}</style>
             {/* === END OF BLOCK TO ADD === */}
         </>
     );
