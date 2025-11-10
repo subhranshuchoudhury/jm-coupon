@@ -35,6 +35,8 @@ export async function proxy(request: NextRequest) {
                 // await pb.collection('users').authRefresh();
 
 
+
+
                 if (pathname === "/signin") {
 
                     if (role === "admin") {
@@ -54,18 +56,27 @@ export async function proxy(request: NextRequest) {
                     return response;
                 }
 
+                if (pathname === "/") {
+
+                    if (role === "admin") {
+                        const response = NextResponse.redirect(new URL('/admin', request.url));
+                        return response;
+                    }
+
+                    const response = NextResponse.next();
+                    return response;
+                }
+
                 if (pathname.includes("admin") && role !== "admin") {
+
                     const response = NextResponse.redirect(new URL('/', request.url));
                     response.cookies.delete('pb_auth');
                     response.cookies.delete('role');
                     return response;
                 }
 
-                const response = NextResponse.next();
-                return response;
-            } else {
-                throw new Error('Invalid token');
             }
+
         } catch (error) {
 
             console.log("ERROR", error)
