@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
-// Initialize PocketBase client
 const pb = new PocketBase(process.env.POCKETBASE_URL);
 
 export async function proxy(request: NextRequest) {
+
     const { pathname } = request.nextUrl;
 
-    // Get token from cookies
     const token = request.cookies.get('pb_auth')?.value;
-    const role = request.cookies.get('role')?.value; // Still using the flawed cookie as requested
+    const role = request.cookies.get('role')?.value;
 
-    // --- No Token ---
+
     if (!token && pathname === "/signin") {
         return NextResponse.next();
     }
@@ -21,21 +20,19 @@ export async function proxy(request: NextRequest) {
         return response;
     }
 
-    // --- Token Exists ---
+
     if (token) {
         try {
             pb.authStore.save(token);
 
             if (pb.authStore.isValid) {
-                // --- Start of Auth-Valid Logic ---
-
                 if (pathname === "/") {
                     if (role === "admin") {
                         const response = NextResponse.redirect(new URL('/admin', request.url));
                         return response;
                     }
-                    // This was missing before for non-admin on "/"
-                    return NextResponse.next();
+                    const response = NextResponse.next();
+                    return response;
                 }
 
                 if (pathname === "/signin") {
@@ -43,37 +40,30 @@ export async function proxy(request: NextRequest) {
                         const response = NextResponse.redirect(new URL('/admin', request.url));
                         return response;
                     }
-                    return NextResponse.redirect(new URL('/', request.url));
-                }
-
-                if (pathname.includes("admin") && role !== "admin") {
                     const response = NextResponse.redirect(new URL('/', request.url));
                     return response;
                 }
 
-                // **LOGIC FIX 1:**
-                // If the user is valid and no other rule matched, 
-                // (e.g., non-admin at /profile or admin at /admin/dashboard)
-                // allow the request to proceed.
-                return NextResponse.next();
 
-                // --- End of Auth-Valid Logic ---
+                if (pathname.includes("admin") && role !== "admin") {
+                    const response = NextResponse.redirect(new URL('/', request.url));
+                    response.cookies.delete('pb_auth');
+                    response.cookies.delete('role');
+                    return response;
+                }
+
             } else {
-                // **LOGIC FIX 2:**
-                // Token was present but *not* valid (e.g., expired).
-                // Force a logout by redirecting to signin and clearing cookies.
                 const response = NextResponse.redirect(new URL('/signin', request.url));
                 response.cookies.delete('pb_auth');
-                response.cookies.delete('role'); // Also clear this
+                response.cookies.delete('role');
                 return response;
             }
 
         } catch (error) {
-            // This catch is for other errors (e.g., pb.authStore.save failed)
             console.log("ERROR", error)
             const response = NextResponse.redirect(new URL('/signin', request.url));
             response.cookies.delete('pb_auth');
-            response.cookies.delete('role'); // Also clear this
+            response.cookies.delete('role');
             return response;
         }
     }
