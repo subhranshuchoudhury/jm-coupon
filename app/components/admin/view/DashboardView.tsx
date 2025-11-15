@@ -1,8 +1,8 @@
 "use client";
-import { fetchCoupons, fetchUsers } from "@/apis/api";
+import { fetchCompanies, fetchCoupons, fetchUsers } from "@/apis/api";
 import pb from "@/lib/pocketbase";
 import { useQuery } from "@tanstack/react-query";
-import { Gift, Ticket, Users } from "lucide-react";
+import { Building2, Gift, Ticket, Users } from "lucide-react";
 
 export default function DashboardView() {
     // Fetch total users for the dashboard
@@ -29,9 +29,21 @@ export default function DashboardView() {
         refetchOnMount: true
     });
 
+    // Fetch total companies for the dashboard
+    const { data: companiesData } = useQuery({
+        queryKey: ['companies', 1],
+        queryFn: () => fetchCompanies(1),
+        refetchInterval: 10000,
+        refetchOnMount: true
+    });
+
     const totalUsers = userData?.totalItems ?? '...';
     const pendingRequests = pendingRequestsData?.length ?? '...';
     const totalCoupons = couponData?.totalItems ?? '...';
+    const totalCompanies = companiesData?.totalItems ?? '...';
+
+    console.log(companiesData)
+
 
     return (
         <div className="space-y-6">
@@ -67,6 +79,15 @@ export default function DashboardView() {
                         </div>
                         <div className="stat-title">Total Coupons</div>
                         <div className="stat-value">{totalCoupons}</div>
+                    </div>
+                </div>
+                <div className="stats shadow bg-base-100 border border-success/20">
+                    <div className="stat">
+                        <div className="stat-figure text-success">
+                            <Building2 size={32} />
+                        </div>
+                        <div className="stat-title">Total Companies</div>
+                        <div className="stat-value">{totalCompanies}</div>
                     </div>
                 </div>
             </div>

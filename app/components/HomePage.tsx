@@ -1,5 +1,6 @@
 "use client";
-import { Bell, Gift, QrCode, User } from "lucide-react";
+// --- MODIFIED: Added 'Building' icon ---
+import { Bell, Gift, QrCode, User, Building2 } from "lucide-react";
 import QRScannerModal from "./QRScannerModal";
 import RedeemRequestItem from "./tabs/RedeemRequestItem";
 import TransactionItem from "./tabs/TransactionItem";
@@ -10,6 +11,8 @@ import useProfileStore from "@/stores/profile.store";
 import { useEffect, useState } from "react";
 import { RedeemRequest, Transaction } from "../types";
 import { useRouter } from "next/navigation";
+// --- NEW: Import the companies modal ---
+import CompaniesModal from "./CompaniesModal"; // Adjust path as needed
 
 type HomePageProps = {
     totalPoints: number;
@@ -165,14 +168,17 @@ export default function HomePage({
     }, [data]);
 
     useEffect(() => {
-        // Guard against different error shapes by using a type assertion / runtime check
-        if (isError && (error as any)?.status === 401) {
-            pb.authStore.clear();
-            removeProfile();
-            deleteCookie('pb_auth');
-            deleteCookie('role');
-            router.replace('/signin');
-        }
+
+        (async () => {
+            // Guard against different error shapes by using a type assertion / runtime check
+            if (isError && (error as any)?.status === 401) {
+                pb.authStore.clear();
+                removeProfile();
+                await deleteCookie('pb_auth');
+                await deleteCookie('role');
+                router.replace('/signin');
+            }
+        })()
     }, [isError, error]);
 
     return (
@@ -207,6 +213,22 @@ export default function HomePage({
                         <User size={20} />
                     </button>
                 </div>
+            </div>
+
+            {/* --- NEW: Floating Action Button for Companies --- */}
+            <div className="fixed bottom-6 left-4 z-40 flex items-center gap-2">
+                <button
+                    className="btn btn-primary shadow-lg rounded-full"
+                    title="Show Companies"
+                    onClick={() =>
+                        (
+                            document.getElementById('companies_modal') as HTMLDialogElement
+                        )?.showModal()
+                    }
+                >
+                    <span>Companies</span>
+                    <Building2 size={20} />
+                </button>
             </div>
 
             {/* Main Content Area */}
@@ -374,6 +396,9 @@ export default function HomePage({
                     onScan={handleScanResult}
                 />
             )}
+
+            {/* --- NEW: Render the Companies Modal --- */}
+            <CompaniesModal />
         </>
     );
 }

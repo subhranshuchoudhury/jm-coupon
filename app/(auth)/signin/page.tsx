@@ -189,6 +189,7 @@ export default function SignInForm() {
                         {/* Button Container */}
                         <div className="mt-2 mb-6 flex justify-center items-center">
                             <button
+                                onMouseEnter={() => router.prefetch('/')}
                                 onClick={handleGoogleSignIn}
                                 disabled={isLoading}
                                 className="flex w-72 items-center justify-center gap-3 rounded-full bg-blue-600 p-2 text-lg font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"

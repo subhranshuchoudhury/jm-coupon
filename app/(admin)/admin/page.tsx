@@ -204,14 +204,16 @@ function Admin() {
     }, [data]);
 
     useEffect(() => {
-        // Guard against different error shapes by using a type assertion / runtime check
-        if (isError && (error as any)?.status === 401) {
-            pb.authStore.clear();
-            removeProfile();
-            deleteCookie('pb_auth');
-            deleteCookie('role');
-            router.replace('/signin');
-        }
+        (async () => {
+            // Guard against different error shapes by using a type assertion / runtime check
+            if (isError && (error as any)?.status === 401) {
+                pb.authStore.clear();
+                removeProfile();
+                await deleteCookie('pb_auth');
+                await deleteCookie('role');
+                router.replace('/signin');
+            }
+        })();
     }, [isError, error]);
 
 
