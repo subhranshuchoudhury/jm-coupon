@@ -97,7 +97,7 @@ export default function SignInForm() {
             // This will NOW wait until the promise is
             // resolved (success), aborted (user cancel), or
             // rejected (real error).
-            setIsLoading(false);
+            // setIsLoading(false);
         }
     };
 

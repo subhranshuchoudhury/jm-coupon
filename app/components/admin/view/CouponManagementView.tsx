@@ -17,12 +17,14 @@ import UserAvatar from "../UserAvatar";
 const showModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.showModal();
 const closeModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.close();
 
-// Helper type for parsed Excel row
+// --- MODIFIED: Added optional points field ---
 type ParsedCouponRow = {
     code?: string;
     mrp?: number;
     company?: string;
+    points?: number; // Optional override
 };
+// --- END MODIFIED ---
 
 type CompanyData = {
     id: string;
@@ -96,7 +98,7 @@ export default function CouponManagementView() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['coupons'] });
             closeModal('coupon_edit_modal');
-            resetModalState(); // --- MODIFIED ---
+            resetModalState();
         },
     });
 
@@ -136,7 +138,6 @@ export default function CouponManagementView() {
     };
 
     const handleCreateNew = (initialCode = '') => {
-        // --- MODIFIED ---
         // Ensure new coupon has all properties, even if default
         const newCoupon: Coupon = {
             id: 'new',
@@ -151,7 +152,6 @@ export default function CouponManagementView() {
         setPointsInput('');
         setMrpInput('');
         setCompanyInput('');
-        // --- END MODIFIED ---
     }
 
     const handleScanComplete = (result: string) => {
@@ -204,8 +204,6 @@ export default function CouponManagementView() {
 
         // Basic validation
         if (isNaN(pointsNum) || pointsNum < 1) {
-            // You can show an error here if desired
-            // For now, we rely on the input's `min="1"`
             return;
         }
 
@@ -228,7 +226,7 @@ export default function CouponManagementView() {
         }
     }
 
-    // --- Bulk Upload Functions (Unchanged) ---
+    // --- Bulk Upload Functions ---
     const resetBulkModalState = () => {
         setSelectedFile(null);
         setIsProcessing(false);
@@ -250,11 +248,13 @@ export default function CouponManagementView() {
     }
 
     const handleDownloadSample = () => {
+        // --- MODIFIED: Added 'points' to sample CSV ---
         const csvContent = "data:text/csv;charset=utf-8,"
-            + "code,company,mrp\n"
-            + "BULK-COUPON-01,tgp,100\n"
-            + "BULK-COUPON-02,tgp,500\n"
-            + "MY-CODE,lumax,250";
+            + "code,company,mrp,points\n"
+            + "BULK-COUPON-01,tgp,100,\n"
+            + "BULK-COUPON-02,tgp,500,50\n"
+            + "MY-CODE,lumax,250,";
+        // --- END MODIFIED ---
 
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -296,14 +296,12 @@ export default function CouponManagementView() {
                     throw new Error("The file is empty or in the wrong format.");
                 }
 
-                // --- MODIFIED: Use the 'companies' data from useQuery if available ---
                 const companyList = companies || await pb.collection('companies').getFullList<CompanyData>({
                     page: 1,
                     perPage: 500,
                     fields: 'id, name, conversion_factor',
                     skipTotal: true,
                 });
-                // --- END MODIFIED ---
 
                 // --- Validation ---
                 const validationErrors: string[] = [];
@@ -314,6 +312,9 @@ export default function CouponManagementView() {
                     const code = row.code?.toString().trim();
                     const mrp = parseInt(row.mrp?.toString() || '', 10);
                     const company = row.company?.toString().trim().toLowerCase();
+                    // --- MODIFIED: Check for optional override points ---
+                    const overridePoints = row.points ? parseInt(row.points.toString(), 10) : null;
+                    // --- END MODIFIED ---
 
                     if (!code) {
                         validationErrors.push(`Row ${rowNum}: 'code' is missing or empty.`);
@@ -335,12 +336,22 @@ export default function CouponManagementView() {
                             return;
                         }
 
+                        // --- MODIFIED: Logic to prioritize override points ---
+                        let finalPoints = 0;
+
+                        if (overridePoints && !isNaN(overridePoints) && overridePoints > 0) {
+                            finalPoints = overridePoints;
+                        } else {
+                            finalPoints = Math.round(((mrp) * (companyData?.conversion_factor || 0)) / 100);
+                        }
+
                         couponsToCreate.push({
                             code,
                             mrp,
-                            points: Math.round(((mrp) * (companyData?.conversion_factor || 0)) / 100),
+                            points: finalPoints,
                             company: companyData?.id,
                         });
+                        // --- END MODIFIED ---
                     }
 
                 });
@@ -574,13 +585,13 @@ export default function CouponManagementView() {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-base-content/70">Not Redeemed</span>
+                                                    <span className="text-base-content/70">N/A</span>
                                                 )}
                                             </td>
                                             {/* --- END MODIFIED --- */}
 
                                             <td className="py-3 px-4 align-middle whitespace-nowrap">
-                                                {coupon.timestamp ? formatDate(coupon.timestamp) : "Not Redeemed"}
+                                                {coupon.timestamp ? formatDate(coupon.timestamp) : "N/A"}
                                             </td>
                                             {/* Created */}
                                             <td className="py-3 px-4 align-middle whitespace-nowrap">
@@ -760,7 +771,7 @@ export default function CouponManagementView() {
                         </div>
 
                         <div className="alert alert-info shadow-lg text-sm">
-                            The file should contain columns: code (unique), company(lower case), and mrp(number). This is a database transaction; either all coupons will be created, or none if there are errors.
+                            The file should contain columns: code (unique), company(lower case), and mrp(number). You can add a 'points' column to override the automatic calculation.
                         </div>
 
                         {/* --- Feedback Area --- */}
