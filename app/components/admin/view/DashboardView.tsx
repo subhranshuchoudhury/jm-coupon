@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, Gift, Ticket, Users } from "lucide-react";
 // Import the new chart component and its type
 import type { RecordModel } from "pocketbase";
-import CompanyStatsChart, { StatItem } from "../../charts/CompanyStatsChart";
+import CompanyStatsChart, { StatItem } from "../../charts/DailyCompanyStatsChart";
 import CompanySellStatsBarChart, { SellStatItem } from "../../charts/LifeTimeCompanyStatsChart";
 import DateWiseStatsLineChart, { DateStatItem } from "../../charts/DateWiseStatsLineChart";
 
