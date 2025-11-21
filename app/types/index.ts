@@ -141,3 +141,17 @@ export type PaginatedResult<T> = {
 };
 
 export type AdminView = 'dashboard' | 'users' | 'redeem' | 'coupons' | 'scan' | 'companies';
+
+export type PocketBaseTopUser = {
+    id: string;
+    name: string;
+    total_points: number;
+    collectionId: string;
+    collectionName: string;
+};
+
+export type TopUser = {
+    id: string;
+    name: string;
+    total_points: number;
+};

@@ -1,4 +1,4 @@
-import { Company, Coupon, PaginatedResult, PocketBaseCompany, PocketBaseCoupon, PocketBaseRedeemRequest, PocketBaseUser, RedeemRequestAdmin, RedeemStatus, User } from "@/app/types";
+import { Company, Coupon, PaginatedResult, PocketBaseCompany, PocketBaseCoupon, PocketBaseRedeemRequest, PocketBaseUser, RedeemRequestAdmin, RedeemStatus, User, TopUser, PocketBaseTopUser } from "@/app/types";
 import pb from "@/lib/pocketbase";
 import { ListResult } from "pocketbase";
 
@@ -222,4 +222,16 @@ export const updateRedeemRequest = async ({ id, data }: { id: string, data: Part
         status: data.status?.toLowerCase(),
     };
     return await pb.collection('redeem_requests').update(id, normalizedData);
+};
+
+export const fetchTopUsers = async (): Promise<TopUser[]> => {
+    const resultList: ListResult<PocketBaseTopUser> = await pb.collection('top_users').getList(1, 10, {
+        sort: '-total_points',
+    });
+
+    return resultList.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        total_points: item.total_points,
+    }));
 };
