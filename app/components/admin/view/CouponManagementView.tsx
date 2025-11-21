@@ -3,7 +3,7 @@
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2, QrCode, Upload, Download } from "lucide-react";
+import { Edit, Plus, Trash2, QrCode, Upload, Download, Search } from "lucide-react";
 import { useState, useRef } from "react";
 import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
@@ -57,10 +57,13 @@ export default function CouponManagementView() {
     const [exportError, setExportError] = useState<string | null>(null);
     // --- END NEW EXPORT LOGIC ---
 
+    // --- NEW: Search State ---
+    const [searchQuery, setSearchQuery] = useState('');
+
     // Fetch coupons data
     const { data, isLoading, isError } = useQuery({
-        queryKey: ['coupons', currentPage],
-        queryFn: () => fetchCoupons(currentPage),
+        queryKey: ['coupons', currentPage, searchQuery],
+        queryFn: () => fetchCoupons(currentPage, searchQuery),
         refetchInterval: 10000, // Refetch every 10 seconds
         refetchOnMount: 'always',
         refetchOnWindowFocus: true,
@@ -516,6 +519,26 @@ export default function CouponManagementView() {
                     </button>
                 </div>
             </div>
+
+            {/* --- NEW: Search Bar --- */}
+            <div className="form-control w-full max-w-xs">
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="Search by code..."
+                        className="input input-bordered w-full pr-10"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1); // Reset to first page on search
+                        }}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-base-content/50">
+                        <Search size={18} />
+                    </div>
+                </div>
+            </div>
+            {/* --- END NEW --- */}
 
             <div className="card bg-base-100 shadow-xl">
                 <div className="card-body p-0">

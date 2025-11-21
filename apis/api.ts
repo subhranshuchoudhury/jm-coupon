@@ -54,8 +54,9 @@ export const fetchUsers = async (
 
 export const fetchCoupons = async (page: number, searchQuery?: string): Promise<PaginatedResult<Coupon>> => {
     let filter = '';
-    if (searchQuery) {
-        filter = `code ~ '${searchQuery}'`;
+    const term = searchQuery?.trim();
+    if (term) {
+        filter = `code ~ '${term}'`;
     }
 
     // PocketBase response from getList of 'coupons' collection
