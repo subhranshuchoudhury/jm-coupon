@@ -1,14 +1,15 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface CouponCodeDisplayProps {
     code: string;
+    globalVisible?: boolean;
 }
 
-export default function CouponCodeDisplay({ code }: CouponCodeDisplayProps) {
-    const [isVisible, setIsVisible] = useState(false);
+export default function CouponCodeDisplay({ code, globalVisible = false }: CouponCodeDisplayProps) {
+    const [isVisible, setIsVisible] = useState(globalVisible);
 
     const getMaskedCode = (code: string) => {
         if (!code) return "";
@@ -17,6 +18,10 @@ export default function CouponCodeDisplay({ code }: CouponCodeDisplayProps) {
         const last3 = code.substring(code.length - 3);
         return `${first3}XXXX${last3}`;
     };
+
+    useEffect(() => {
+        setIsVisible(globalVisible);
+    }, [globalVisible]);
 
     return (
         <div className="flex items-center gap-2">

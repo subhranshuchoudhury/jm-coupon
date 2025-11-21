@@ -3,7 +3,7 @@
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2, QrCode, Upload, Download, Search } from "lucide-react";
+import { Edit, Plus, Trash2, QrCode, Upload, Download, Search, Eye, EyeOff } from "lucide-react";
 import { useState, useRef } from "react";
 import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
@@ -38,7 +38,7 @@ export default function CouponManagementView() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
     const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null); // State for delete modal
-
+    const [isVisible, setIsVisible] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     const [couponCodeInput, setCouponCodeInput] = useState<string>('');
@@ -554,7 +554,14 @@ export default function CouponManagementView() {
                                 {/* Table Head: Added padding, alignment, and whitespace control */}
                                 <thead>
                                     <tr className="border-b border-base-content/10">
-                                        <th className="py-3 px-4 text-left whitespace-nowrap">Code</th>
+                                        <th className="py-3 px-4 text-left whitespace-nowrap">
+                                            <div onClick={() => setIsVisible(!isVisible)} className="flex items-center gap-2">
+                                                <span>Code</span>
+                                                <span className="cursor-pointer">
+                                                    {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </span>
+                                            </div>
+                                        </th>
                                         <th className="py-3 px-4 text-left">Company</th>
                                         <th className="py-3 px-4 text-right whitespace-nowrap">MRP</th>
                                         <th className="py-3 px-4 text-right whitespace-nowrap">Points Value</th>
@@ -572,7 +579,7 @@ export default function CouponManagementView() {
 
                                             {/* Code */}
                                             <td className="py-3 px-4 align-middle whitespace-nowrap">
-                                                <CouponCodeDisplay code={coupon.code} />
+                                                <CouponCodeDisplay code={coupon.code} globalVisible={isVisible} />
                                             </td>
 
                                             {/* Company */}
