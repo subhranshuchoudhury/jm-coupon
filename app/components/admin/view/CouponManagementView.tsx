@@ -11,6 +11,7 @@ import pb from "@/lib/pocketbase";
 import * as XLSX from 'xlsx';
 import { formatDate } from "@/utils";
 import UserAvatar from "../UserAvatar";
+import CouponCodeDisplay from "./CouponCodeDisplay";
 
 
 // Helper function to show the modal by its ID
@@ -548,7 +549,7 @@ export default function CouponManagementView() {
 
                                             {/* Code */}
                                             <td className="py-3 px-4 align-middle whitespace-nowrap">
-                                                <span className="font-mono badge badge-neutral p-3 font-semibold">{coupon.code}</span>
+                                                <CouponCodeDisplay code={coupon.code} />
                                             </td>
 
                                             {/* Company */}

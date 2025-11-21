@@ -52,11 +52,17 @@ export const fetchUsers = async (
     };
 };
 
-export const fetchCoupons = async (page: number): Promise<PaginatedResult<Coupon>> => {
+export const fetchCoupons = async (page: number, searchQuery?: string): Promise<PaginatedResult<Coupon>> => {
+    let filter = '';
+    if (searchQuery) {
+        filter = `code ~ '${searchQuery}'`;
+    }
+
     // PocketBase response from getList of 'coupons' collection
     const resultList: ListResult<PocketBaseCoupon> = await pb.collection('coupons').getList(page, PER_PAGE, {
         sort: '-created',
         expand: 'company,redeemed_by', // Expand the company relation to get company details
+        filter: filter || undefined,
     });
 
     const coupons: Coupon[] = resultList.items.map(item => {
