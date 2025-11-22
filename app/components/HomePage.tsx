@@ -1,6 +1,6 @@
 "use client";
 // --- MODIFIED: Added 'Building' icon and 'Image/Upload' icons ---
-import { Bell, Gift, QrCode, User, Building2, Image as ImageIcon } from "lucide-react";
+import { Bell, Gift, QrCode, User, Building2, Image as ImageIcon, Headset } from "lucide-react";
 import QRScannerModal from "./QRScannerModal";
 import RedeemRequestItem from "./tabs/RedeemRequestItem";
 import TransactionItem from "./tabs/TransactionItem";
@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import CompaniesModal from "./CompaniesModal";
 // --- MODIFIED: Import TopUsers ---
 import TopUsers from "./TopUsers";
+import ContactSupportModal from "./ContactSupportModal";
 
 type HomePageProps = {
     totalPoints: number;
@@ -260,6 +261,21 @@ export default function HomePage({
                 </button>
             </div>
 
+            <div className="fixed bottom-6 right-4 z-40 flex items-center gap-2">
+                <button
+                    className="btn btn-secondary shadow-lg rounded-full"
+                    title="Contact Support"
+                    onClick={() =>
+                        (
+                            document.getElementById('contact_support_modal') as HTMLDialogElement
+                        )?.showModal()
+                    }
+                >
+                    <span>Contact</span>
+                    <Headset size={20} />
+                </button>
+            </div>
+
             {/* Main Content Area */}
             <main className="grow flex flex-col items-center p-4 pb-24"> {/* added pb-24 for scroll space */}
                 <div className="w-full max-w-md">
@@ -448,6 +464,7 @@ export default function HomePage({
 
             {/* --- NEW: Render the Companies Modal --- */}
             <CompaniesModal />
+            <ContactSupportModal />
         </>
     );
 }
