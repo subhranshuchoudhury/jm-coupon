@@ -37,24 +37,36 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
             const svg = document.getElementById("coupon-qr-code");
             if (!svg) throw new Error("QR Code element not found");
 
-            // 2. Create a Canvas to draw the SVG onto
+            // 2. Create a Canvas
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
             const svgData = new XMLSerializer().serializeToString(svg);
             const img = new Image();
 
-            // Add some padding and white background logic for better visibility
-            const size = 256;
-            canvas.width = size;
-            canvas.height = size;
+            // --- CONFIGURATION ---
+            const canvasSize = 300; // Increased slightly for better resolution
+            const padding = 25;     // The amount of white space (padding) around the QR
+            // ---------------------
+
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
 
             img.onload = async () => {
                 if (ctx) {
-                    // Draw white background
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(0, 0, size, size);
-                    // Draw Image
-                    ctx.drawImage(img, 0, 0, size, size);
+                    // A. Draw the white background over the ENTIRE canvas
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+                    // B. Draw the QR Code Image with padding
+                    // We start at (padding, padding)
+                    // We make the width/height smaller by (padding * 2) to fit inside
+                    ctx.drawImage(
+                        img,
+                        padding,
+                        padding,
+                        canvasSize - (padding * 2),
+                        canvasSize - (padding * 2)
+                    );
 
                     // 3. Convert canvas to blob
                     canvas.toBlob(async (blob) => {
@@ -73,7 +85,7 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
                                 console.log("Share cancelled or failed", err);
                             }
                         } else {
-                            // Fallback: Download the image
+                            // Fallback: Download
                             const link = document.createElement('a');
                             link.href = URL.createObjectURL(blob);
                             link.download = `coupon-${code}.png`;
@@ -87,8 +99,9 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
                 }
             };
 
-            // Create a Base64 URL for the SVG to load into the Image object
-            img.src = "data:image/svg+xml;base64," + btoa(svgData);
+            // Handle loading the SVG source
+            // Using encodeURIComponent is often safer than btoa for SVGs with special characters
+            img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgData);
 
         } catch (error) {
             console.error("Error generating image:", error);
@@ -123,7 +136,7 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
                         disabled={isSharing}
                     >
                         {isSharing ? <span className="loading loading-spinner loading-xs"></span> : <Share2 size={18} />}
-                        {navigator.canShare() ? "Share Image" : "Download Image"}
+                        Share Image
                     </button>
                 </div>
             </div>
