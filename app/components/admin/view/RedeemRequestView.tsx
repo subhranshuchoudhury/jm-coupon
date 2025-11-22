@@ -186,7 +186,7 @@ export default function RedeemRequestView() {
                                     <Copy size={12} />
                                 </button>
                             </p>
-                            <p className="text-sm"><strong>Points:</strong> <span className="font-mono">{selectedRequest.points} pts</span></p>
+                            <p className="text-sm"><strong>Points:</strong> <span className="font-mono">₹{selectedRequest.points}</span></p>
                             <div className="form-control">
                                 <label className="label"><span className="label-text">Status</span></label>
                                 <select className="select select-bordered w-full" name="status" defaultValue={selectedRequest.status.toLowerCase()}>

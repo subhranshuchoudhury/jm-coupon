@@ -28,9 +28,9 @@ export default function RedeemModalContent({
                         <div className="card-body items-center text-center p-5">
                             <h2 className="card-title opacity-80">Your Points are worth</h2>
                             <p className="text-4xl font-bold">₹{redeemableValue}</p>
-                            <p className="opacity-90 text-sm">
+                            {/* <p className="opacity-90 text-sm">
                                 {profile?.total_points?.toLocaleString()} Points Available
-                            </p>
+                            </p> */}
                         </div>
                     </div>
 

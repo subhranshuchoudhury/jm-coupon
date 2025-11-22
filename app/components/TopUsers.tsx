@@ -68,9 +68,9 @@ export default function TopUsers() {
                             <div className="grow px-2">
                                 <p className="font-bold text-sm truncate">{user.name}</p>
                             </div>
-                            {/* <div className="font-mono font-bold text-sm opacity-80">
-                                {user.total_points.toLocaleString()} pts
-                            </div> */}
+                            <div className="font-mono font-bold text-sm opacity-80">
+                                ₹{user.total_points.toLocaleString()}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -86,9 +86,9 @@ export default function TopUsers() {
                                 <div className="grow px-2">
                                     <p className="text-sm font-medium">{user.name}</p>
                                 </div>
-                                {/* <div className="text-xs font-mono text-base-content/70">
-                                    {user.total_points.toLocaleString()}
-                                </div> */}
+                                <div className="text-xs font-mono text-base-content/70">
+                                    ₹{user.total_points.toLocaleString()}
+                                </div>
                             </div>
                         ))}
 
