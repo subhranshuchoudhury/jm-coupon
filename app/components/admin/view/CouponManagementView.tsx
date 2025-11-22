@@ -3,7 +3,7 @@
 import { createOrUpdateCoupon, deleteCoupon, fetchCoupons } from "@/apis/api";
 import { Coupon, PocketBaseCoupon } from "@/app/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Plus, Trash2, QrCode, Upload, Download, Search, Eye, EyeOff, Share2 } from "lucide-react";
+import { Edit, Plus, Trash2, QrCode, Upload, Download, Search, Eye, EyeOff, Share2, FileSpreadsheet, CheckCircle, XCircle, Loader2, RefreshCcw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Pagination from "../../Pagination";
 import QRScannerModal from "../../QRScannerModal";
@@ -12,10 +12,9 @@ import * as XLSX from 'xlsx';
 import { formatDate } from "@/utils";
 import UserAvatar from "../UserAvatar";
 import CouponCodeDisplay from "./CouponCodeDisplay";
-// --- NEW: Import QR Code Package ---
 import QRCode from "react-qr-code";
 
-// --- NEW COMPONENT: QR Share Modal ---
+// ... [Keep QRShareModal component exactly as is] ...
 const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => void }) => {
     const modalRef = useRef<HTMLDialogElement>(null);
     const [isSharing, setIsSharing] = useState(false);
@@ -29,7 +28,6 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
     }, [code]);
 
     const handleShare = async () => {
-        // Assuming 'code' and 'setIsSharing' are defined in your component scope
         if (!code) return;
         setIsSharing(true);
 
@@ -39,91 +37,48 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
 
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
-            // Important: We need the SVG to render sharply at a larger size. 
-            // Ensure the SVG element itself doesn't have fixed small width/height attributes blocking scaling.
             const svgData = new XMLSerializer().serializeToString(svg);
             const img = new Image();
-
-            // --- QUALITY CONFIGURATION ---
-            // 1 = Standard (400x500), 2 = Retina (800x1000), 3 = High Res (1200x1500)
-            // A scale factor of 3 is generally excellent for mobile sharing.
             const scaleFactor = 3;
-
-            // --- BASE DIMENSIONS ---
             const baseWidth = 400;
             const baseHeight = 500;
             const baseQrSize = 280;
             const baseQrY = 100;
-
-            // --- SCALED DIMENSIONS (The actual canvas size) ---
             const canvasWidth = baseWidth * scaleFactor;
             const canvasHeight = baseHeight * scaleFactor;
             const qrSize = baseQrSize * scaleFactor;
             const qrY = baseQrY * scaleFactor;
-
-            // Calculate center X based on scaled widths
             const centerX = canvasWidth / 2;
             const qrX = (canvasWidth - qrSize) / 2;
 
-            // Set the large canvas dimensions
             canvas.width = canvasWidth;
             canvas.height = canvasHeight;
 
             img.onload = async () => {
                 if (!ctx) return;
-
-                // A. Fill White Background
                 ctx.fillStyle = "#FFFFFF";
                 ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-                // B. Configure Text Settings (General)
                 ctx.textAlign = "center";
-
-                // --- Helper function for scaled fonts ---
                 const setFont = (size: number, weight = "bold") => {
                     ctx.font = `${weight} ${size * scaleFactor}px sans-serif`;
                 };
-
-
-                // D. Draw Label (Top Grey Text)
                 ctx.fillStyle = "#666666";
-                setFont(16, "normal"); // Base size 16
-                // Y positions must also be scaled
+                setFont(16, "normal");
                 ctx.fillText("✨🎊 Congratulations! 🎊✨", centerX, 28 * scaleFactor);
-
-                // C. Draw Header Text (Main Title)
                 ctx.fillStyle = "#000000";
-                setFont(32, "bold"); // Base size 32
+                setFont(32, "bold");
                 ctx.fillText("Here is your coupon!", centerX, 65 * scaleFactor);
-
-                // OPTIONAL: If you want to show the actual code number below the title
-                // setFont(24, "bold");
-                // ctx.fillText(code, centerX, 95 * scaleFactor);
-
-
-                // E. Draw the QR Code Image (Scaled)
-                // Because the canvas is large, the SVG will render sharply here.
                 ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
-
-
-                // F. Draw Footer Text
                 const footerStartY = qrY + qrSize;
-
                 ctx.fillStyle = "#000000";
-                setFont(18, "bold"); // Base size 18
+                setFont(18, "bold");
                 ctx.fillText("Thanks for buying from", centerX, footerStartY + (40 * scaleFactor));
-
-                ctx.fillStyle = "#D32F2F"; // Red accent color
-                setFont(24, "bold"); // Increased base size slightly for better look
+                ctx.fillStyle = "#D32F2F";
+                setFont(24, "bold");
                 ctx.fillText("Jyeshtha Motors", centerX, footerStartY + (70 * scaleFactor));
-
-
-                // 3. Convert to Blob and Share
-                // Note: 'quality' argument (e.g., 0.9) does NOT work for PNGs. PNG is always lossless.
                 canvas.toBlob(async (blob) => {
                     if (!blob) return;
                     const file = new File([blob], `coupon-${code}.png`, { type: "image/png" });
-
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         try {
                             await navigator.share({
@@ -135,7 +90,6 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
                             console.log("Share cancelled", err);
                         }
                     } else {
-                        // Fallback
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(blob);
                         link.download = `coupon-${code}.png`;
@@ -147,10 +101,7 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
                     setIsSharing(false);
                 }, "image/png");
             };
-
-            // Use encodeURIComponent for better SVG compatibility
             img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgData);
-
         } catch (error) {
             console.error("Error generating image:", error);
             setIsSharing(false);
@@ -161,21 +112,17 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
         <dialog ref={modalRef} className="modal">
             <div className="modal-box flex flex-col items-center text-center">
                 <h3 className="font-bold text-lg mb-4">Share Coupon QR</h3>
-
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-base-200 mb-4">
-                    {/* Render the QR Code */}
                     {code && (
                         <QRCode
                             id="coupon-qr-code"
                             value={code}
                             size={200}
-                            level="H" // High error correction
+                            level="H"
                         />
                     )}
                 </div>
-
                 <p className="font-mono text-xl font-bold mb-6 text-primary">{code}</p>
-
                 <div className="modal-action w-full flex justify-center gap-2">
                     <button className="btn btn-ghost" onClick={onClose}>Close</button>
                     <button
@@ -194,8 +141,6 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
         </dialog>
     );
 };
-// --- END NEW COMPONENT ---
-
 
 // Helper function to show the modal by its ID
 const showModal = (id: string) => (document.getElementById(id) as HTMLDialogElement)?.showModal();
@@ -214,6 +159,15 @@ type CompanyData = {
     conversion_factor: number;
 };
 
+// --- NEW: Types for Individual Upload ---
+type UploadMode = 'batch' | 'individual';
+type UploadStatus = 'pending' | 'processing' | 'success' | 'failed';
+type IndividualUploadRecord = {
+    code: string;
+    status: UploadStatus;
+    message: string;
+};
+
 export default function CouponManagementView() {
     const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
@@ -222,7 +176,6 @@ export default function CouponManagementView() {
     const [isVisible, setIsVisible] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
-    // --- NEW: State for QR Share Modal ---
     const [qrShareCode, setQrShareCode] = useState<string | null>(null);
 
     const [couponCodeInput, setCouponCodeInput] = useState<string>('');
@@ -235,12 +188,16 @@ export default function CouponManagementView() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // --- NEW: State for Individual Uploads ---
+    const [uploadMode, setUploadMode] = useState<UploadMode>('batch');
+    const [individualStatuses, setIndividualStatuses] = useState<IndividualUploadRecord[]>([]);
+    const [isIndividualComplete, setIsIndividualComplete] = useState(false);
+
     const [exportBatchSize, setExportBatchSize] = useState<number | string>(500);
     const [isExporting, setIsExporting] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Fetch coupons data
     const { data, isLoading, isError } = useQuery({
         queryKey: ['coupons', currentPage, searchQuery],
         queryFn: () => fetchCoupons(currentPage, searchQuery),
@@ -249,7 +206,6 @@ export default function CouponManagementView() {
         refetchOnWindowFocus: true,
     });
 
-    // Fetch companies data
     const { data: companies, isLoading: isLoadingCompanies } = useQuery({
         queryKey: ['companies'],
         queryFn: async () => {
@@ -281,6 +237,13 @@ export default function CouponManagementView() {
             closeModal('coupon_edit_modal');
             resetModalState();
         },
+    });
+
+    // --- NEW: Individual Mutation with Retry ---
+    const individualMutate = useMutation({
+        mutationFn: createOrUpdateCoupon,
+        retry: 1, // Retry 1 times on error
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
     });
 
     const couponDeleteMutation = useMutation({
@@ -365,23 +328,18 @@ export default function CouponManagementView() {
         calculatePoints(newMrp, companyInput);
     };
 
-
     const handleModalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!selectedCoupon) return;
-
         const pointsNum = parseInt(pointsInput.toString(), 10);
         const mrpNum = parseFloat(mrpInput.toString()) || 0;
-
         if (isNaN(pointsNum) || pointsNum < 1) return;
-
         const data: Partial<PocketBaseCoupon> = {
             code: couponCodeInput,
             points: pointsNum,
             mrp: mrpNum,
             company: companyInput || "",
         };
-
         couponMutate.mutate({ id: selectedCoupon.id, data });
     };
 
@@ -399,6 +357,9 @@ export default function CouponManagementView() {
         setIsProcessing(false);
         setProcessingError(null);
         setSuccessMessage(null);
+        setUploadMode('batch'); // Reset to default
+        setIndividualStatuses([]);
+        setIsIndividualComplete(false);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -435,8 +396,72 @@ export default function CouponManagementView() {
             setSelectedFile(e.target.files[0]);
             setProcessingError(null);
             setSuccessMessage(null);
+            setIndividualStatuses([]);
+            setIsIndividualComplete(false);
         }
     };
+
+    const prepareDataFromExcel = async (): Promise<Partial<PocketBaseCoupon>[]> => {
+        if (!selectedFile) throw new Error("No file selected");
+
+        const data = await selectedFile.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: ParsedCouponRow[] = XLSX.utils.sheet_to_json(worksheet);
+
+        if (json.length === 0) throw new Error("The file is empty or in the wrong format.");
+
+        const companyList = companies || await pb.collection('companies').getFullList<CompanyData>({
+            page: 1,
+            perPage: 500,
+            fields: 'id, name, conversion_factor',
+            skipTotal: true,
+        });
+
+        const validationErrors: string[] = [];
+        const couponsToCreate: Partial<PocketBaseCoupon>[] = [];
+
+        json.forEach((row, index) => {
+            const rowNum = index + 2;
+            const code = row.code?.toString().trim();
+            const mrp = parseInt(row.mrp?.toString() || '', 10);
+            const company = row.company?.toString().trim().toLowerCase();
+            const overridePoints = row.points ? parseInt(row.points.toString(), 10) : null;
+
+            if (!code) validationErrors.push(`Row ${rowNum}: 'code' is missing or empty.`);
+            if (isNaN(mrp) || mrp < 1) validationErrors.push(`Row ${rowNum}: 'mrp' must be a number greater than 0.`);
+            if (!company) validationErrors.push(`Row ${rowNum}: 'company' is missing or empty.`);
+
+            if (code && !isNaN(mrp) && mrp >= 1 && company) {
+                const companyData = companyList.find(c => c.name.toLowerCase() === company)
+
+                if (!companyData) {
+                    validationErrors.push(`Row ${rowNum}: 'company' "${company}" does not exist in the system.`);
+                    return;
+                }
+
+                let finalPoints = 0;
+                if (overridePoints && !isNaN(overridePoints) && overridePoints > 0) {
+                    finalPoints = overridePoints;
+                } else {
+                    finalPoints = Math.round(((mrp) * (companyData?.conversion_factor || 0)) / 100);
+                }
+
+                couponsToCreate.push({
+                    code,
+                    mrp,
+                    points: finalPoints,
+                    company: companyData?.id,
+                });
+            }
+        });
+
+        if (validationErrors.length > 0) {
+            throw new Error(validationErrors.join('\n'));
+        }
+        return couponsToCreate;
+    }
 
     const handleBulkUpload = async () => {
         if (!selectedFile) {
@@ -448,74 +473,17 @@ export default function CouponManagementView() {
         setProcessingError(null);
         setSuccessMessage(null);
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const json: ParsedCouponRow[] = XLSX.utils.sheet_to_json(worksheet);
+        try {
+            const couponsToCreate = await prepareDataFromExcel();
 
-                if (json.length === 0) {
-                    throw new Error("The file is empty or in the wrong format.");
-                }
-
-                const companyList = companies || await pb.collection('companies').getFullList<CompanyData>({
-                    page: 1,
-                    perPage: 500,
-                    fields: 'id, name, conversion_factor',
-                    skipTotal: true,
-                });
-
-                const validationErrors: string[] = [];
-                const couponsToCreate: Partial<PocketBaseCoupon>[] = [];
-
-                json.forEach((row, index) => {
-                    const rowNum = index + 2;
-                    const code = row.code?.toString().trim();
-                    const mrp = parseInt(row.mrp?.toString() || '', 10);
-                    const company = row.company?.toString().trim().toLowerCase();
-                    const overridePoints = row.points ? parseInt(row.points.toString(), 10) : null;
-
-                    if (!code) validationErrors.push(`Row ${rowNum}: 'code' is missing or empty.`);
-                    if (isNaN(mrp) || mrp < 1) validationErrors.push(`Row ${rowNum}: 'mrp' must be a number greater than 0.`);
-                    if (!company) validationErrors.push(`Row ${rowNum}: 'company' is missing or empty.`);
-
-                    if (code && !isNaN(mrp) && mrp >= 1 && company) {
-                        const companyData = companyList.find(c => c.name.toLowerCase() === company)
-
-                        if (!companyData) {
-                            validationErrors.push(`Row ${rowNum}: 'company' "${company}" does not exist in the system.`);
-                            return;
-                        }
-
-                        let finalPoints = 0;
-                        if (overridePoints && !isNaN(overridePoints) && overridePoints > 0) {
-                            finalPoints = overridePoints;
-                        } else {
-                            finalPoints = Math.round(((mrp) * (companyData?.conversion_factor || 0)) / 100);
-                        }
-
-                        couponsToCreate.push({
-                            code,
-                            mrp,
-                            points: finalPoints,
-                            company: companyData?.id,
-                        });
-                    }
-                });
-
-                if (validationErrors.length > 0) {
-                    throw new Error(validationErrors.join('\n'));
-                }
-
+            if (uploadMode === 'batch') {
+                // --- BATCH UPLOAD LOGIC ---
                 setSuccessMessage(`Processing ${couponsToCreate.length} coupons...`);
                 const batch = pb.createBatch();
                 couponsToCreate.map(couponData => batch.collection('coupons').create(couponData));
                 const results = await batch.send();
                 const successfulUploads = results.filter(r => r.status === 200).length;
-                const failedUploads = results.filter(r => r.status !== 200).map(r => ({ status: "rejected", reason: r.body.code })) as PromiseRejectedResult[];
+                const failedUploads = results.filter(r => r.status !== 200).map(r => ({ status: "rejected", reason: r.body.code }));
 
                 if (failedUploads.length > 0) {
                     setProcessingError(`Uploaded ${successfulUploads} coupons, but ${failedUploads.length} failed.`);
@@ -523,23 +491,101 @@ export default function CouponManagementView() {
                 } else {
                     setSuccessMessage(`Successfully uploaded ${successfulUploads} coupons!`);
                     queryClient.invalidateQueries({ queryKey: ['coupons'] });
-                    handleCloseBulkModal();
+                    // Close modal after short delay if successful
+                    setTimeout(() => {
+                        handleCloseBulkModal();
+                    }, 1500);
                 }
+            } else {
+                // --- INDIVIDUAL UPLOAD LOGIC ---
+                handleIndividualUpload(couponsToCreate);
+                // Note: isProcessing is handled inside handleIndividualUpload
+                return;
+            }
 
-            } catch (err: any) {
-                setProcessingError(`Error: ${err.message} Detailed: ${JSON.stringify(err?.data?.data?.requests || err)}`);
-                setSuccessMessage(null);
-            } finally {
+        } catch (err: any) {
+            setProcessingError(`Error: ${err.message}`);
+            setSuccessMessage(null);
+        } finally {
+            if (uploadMode === 'batch') {
                 setIsProcessing(false);
             }
-        };
-
-        reader.onerror = () => {
-            setProcessingError("Failed to read the file.");
-            setIsProcessing(false);
-        };
-        reader.readAsArrayBuffer(selectedFile);
+        }
     };
+
+    // --- NEW: Handler for Individual Upload Loop ---
+    const handleIndividualUpload = async (coupons: Partial<PocketBaseCoupon>[]) => {
+        // 1. Initialize State
+        const initialStatus: IndividualUploadRecord[] = coupons.map(c => ({
+            code: c.code!,
+            status: 'pending',
+            message: '',
+        }));
+        setIndividualStatuses(initialStatus);
+        setIsIndividualComplete(false);
+
+        // 2. Loop
+        let successCount = 0;
+
+        // We iterate using a standard loop to await each mutation sequentially
+        for (let i = 0; i < coupons.length; i++) {
+            const couponData = coupons[i];
+
+            // Update status to processing
+            setIndividualStatuses(prev => {
+                const newArr = [...prev];
+                newArr[i] = { ...newArr[i], status: 'processing', message: 'Creating...' };
+                return newArr;
+            });
+
+            try {
+                // React Query mutateAsync (handles configured retries automatically)
+                await individualMutate.mutateAsync({ id: 'new', data: couponData });
+
+                // Update success
+                setIndividualStatuses(prev => {
+                    const newArr = [...prev];
+                    newArr[i] = { ...newArr[i], status: 'success', message: 'Created' };
+                    return newArr;
+                });
+                successCount++;
+            } catch (err: any) {
+                // Update failure
+                const errMsg = err?.data?.message || err.message || "Unknown error";
+                // Extract cleaner error if possible (e.g. unique constraint)
+                const cleanMsg = JSON.stringify(err?.data?.data) || errMsg;
+
+                setIndividualStatuses(prev => {
+                    const newArr = [...prev];
+                    newArr[i] = { ...newArr[i], status: 'failed', message: cleanMsg };
+                    return newArr;
+                });
+            }
+        }
+
+        setIsIndividualComplete(true);
+        setIsProcessing(false);
+        setSuccessMessage(`Completed. ${successCount}/${coupons.length} successful.`);
+        queryClient.invalidateQueries({ queryKey: ['coupons'] });
+    };
+
+    // --- NEW: Generate Report ---
+    const handleDownloadReport = () => {
+        if (individualStatuses.length === 0) return;
+
+        const dataToExport = individualStatuses.map(item => ({
+            'Code': item.code,
+            'Result': item.status.toUpperCase(),
+            'Message': item.message
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Upload Report');
+        const dateStr = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+        XLSX.writeFile(wb, `upload_report_${dateStr}.xlsx`);
+    };
+
 
     // --- Export Functions ---
     const handleOpenExportModal = () => {
@@ -618,9 +664,9 @@ export default function CouponManagementView() {
 
     return (
         <div className="space-y-6">
-            {/* --- NEW: QR Share Modal Component --- */}
             <QRShareModal code={qrShareCode} onClose={() => setQrShareCode(null)} />
 
+            {/* ... [Header and Search Bar code remains exactly as is] ... */}
             <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                 <h1 className="text-3xl font-bold hidden lg:block">Coupon Management 🎫</h1>
                 <div className="flex gap-2 flex-wrap">
@@ -639,7 +685,6 @@ export default function CouponManagementView() {
                 </div>
             </div>
 
-            {/* Search Bar */}
             <div className="form-control w-full max-w-xs">
                 <div className="relative">
                     <input
@@ -658,6 +703,7 @@ export default function CouponManagementView() {
                 </div>
             </div>
 
+            {/* ... [Table code remains exactly as is] ... */}
             <div className="card bg-base-100 shadow-xl">
                 <div className="card-body p-0">
                     <div className="overflow-x-auto">
@@ -696,7 +742,6 @@ export default function CouponManagementView() {
                                             <td className="py-3 px-4 align-middle whitespace-nowrap">
                                                 <div className="flex items-center gap-1">
                                                     <CouponCodeDisplay code={coupon.code} globalVisible={isVisible} />
-                                                    {/* --- NEW: Share QR Button --- */}
                                                     <button
                                                         className="btn btn-sm btn-ghost text-secondary join-item tooltip tooltip-top"
                                                         data-tip="Share QR Code"
@@ -704,7 +749,6 @@ export default function CouponManagementView() {
                                                     >
                                                         <QrCode size={16} />
                                                     </button>
-                                                    {/* --- END NEW --- */}
                                                 </div>
                                             </td>
                                             <td className="py-3 px-4 align-middle">
@@ -779,7 +823,7 @@ export default function CouponManagementView() {
                 </div>
             </div>
 
-            {/* Coupon Edit/Create Modal */}
+            {/* ... [Coupon Edit Modal remains exactly as is] ... */}
             <dialog id="coupon_edit_modal" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg">
@@ -870,17 +914,59 @@ export default function CouponManagementView() {
                 </form>
             </dialog>
 
-            {/* Bulk Upload Modal */}
+
+            {/* Bulk Upload Modal - MODIFIED */}
             <dialog id="bulk_upload_modal" className="modal">
-                <div className="modal-box">
+                <div className="modal-box w-11/12 max-w-4xl">
                     <h3 className="font-bold text-lg">Bulk Upload Coupons</h3>
                     <div className="py-4 space-y-4">
+
+                        {/* 1. Toggle Upload Type */}
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold">Upload Type</span>
+                            </label>
+                            <div className="flex gap-4">
+                                <label className="label cursor-pointer justify-start gap-2 border p-3 rounded-lg border-base-300 flex-1">
+                                    <input
+                                        type="radio"
+                                        name="upload_mode"
+                                        className="radio radio-primary"
+                                        checked={uploadMode === 'batch'}
+                                        onChange={() => setUploadMode('batch')}
+                                        disabled={isProcessing}
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="label-text font-bold">Batch Upload</span>
+                                        <span className="label-text text-xs opacity-70">Faster. All or nothing (transactional).</span>
+                                    </div>
+                                </label>
+                                <label className="label cursor-pointer justify-start gap-2 border p-3 rounded-lg border-base-300 flex-1">
+                                    <input
+                                        type="radio"
+                                        name="upload_mode"
+                                        className="radio radio-primary"
+                                        checked={uploadMode === 'individual'}
+                                        onChange={() => setUploadMode('individual')}
+                                        disabled={isProcessing}
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="label-text font-bold">Individual Upload</span>
+                                        <span className="label-text text-xs opacity-70">Slower. Process 1-by-1 with retries & detailed report.</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="divider"></div>
+
                         <p className="text-sm">
                             Upload an Excel (<code>.xlsx</code>) or CSV (<code>.csv</code>) file.
                         </p>
                         <button className="btn btn-sm btn-outline" onClick={handleDownloadSample}>
                             Download Sample .csv File
                         </button>
+
                         <div className="form-control w-full">
                             <label className="label">
                                 <span className="label-text">Upload File</span>
@@ -894,37 +980,98 @@ export default function CouponManagementView() {
                                 disabled={isProcessing}
                             />
                         </div>
-                        <div className="alert alert-info shadow-lg text-sm">
+
+                        <div className="alert alert-warning shadow-lg text-sm">
                             The file should contain columns: code (unique), company(lower case), and mrp(number). You can add a 'points' column to override the automatic calculation.
                         </div>
-                        {isProcessing && (
-                            <div className="alert alert-info">
-                                <span className="loading loading-spinner loading-sm"></span>
-                                {successMessage || "Processing file... Please wait."}
+                        <div className="alert alert-info shadow-lg text-sm">
+                            Note: Use "Batch Upload" when you know the coupons are unique and are not present in the database. Use "Individual Upload" when you are not sure, want to visualize the progress & detailed error. While use "Individual Upload", upload a max of 100 coupons at a time.
+                        </div>
+
+                        {/* --- Batch Mode Feedback --- */}
+                        {uploadMode === 'batch' && (
+                            <>
+                                {isProcessing && (
+                                    <div className="alert alert-info">
+                                        <span className="loading loading-spinner loading-sm"></span>
+                                        {successMessage || "Processing file... Please wait."}
+                                    </div>
+                                )}
+                                {successMessage && !isProcessing && (
+                                    <div className="alert alert-success">
+                                        {successMessage}
+                                    </div>
+                                )}
+                                {processingError && (
+                                    <div className="alert alert-error">
+                                        <span className="font-bold">Error:</span>
+                                        <pre className="whitespace-pre-wrap">{processingError}</pre>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* --- Individual Mode Feedback (Table) --- */}
+                        {uploadMode === 'individual' && individualStatuses.length > 0 && (
+                            <div className="mt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-bold">Progress</h4>
+                                    {isIndividualComplete && (
+                                        <button className="btn btn-sm btn-outline btn-success gap-2" onClick={handleDownloadReport}>
+                                            <FileSpreadsheet size={16} /> Download Report
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="overflow-x-auto border rounded-lg h-64 overflow-y-auto relative bg-base-200/30">
+                                    <table className="table table-xs table-pin-rows w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Code</th>
+                                                <th>Status</th>
+                                                <th>Message</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {individualStatuses.map((item, idx) => (
+                                                <tr key={idx} className={
+                                                    item.status === 'failed' ? 'bg-error/10' :
+                                                        item.status === 'success' ? 'bg-success/10' :
+                                                            item.status === 'processing' ? 'bg-info/10' : ''
+                                                }>
+                                                    <td className="font-mono font-bold">{item.code}</td>
+                                                    <td>
+                                                        {item.status === 'pending' && <span className="badge badge-ghost badge-xs">Pending</span>}
+                                                        {item.status === 'processing' && <span className="badge badge-info badge-xs gap-1"><Loader2 size={10} className="animate-spin" /> Processing</span>}
+                                                        {item.status === 'success' && <span className="badge badge-success badge-xs gap-1"><CheckCircle size={10} /> Success</span>}
+                                                        {item.status === 'failed' && <span className="badge badge-error badge-xs gap-1"><XCircle size={10} /> Failed</span>}
+                                                    </td>
+                                                    <td className="max-w-xs truncate" title={item.message}>
+                                                        {item.message}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {processingError && (
+                                    <div className="alert alert-error mt-2 text-sm">
+                                        <span className="font-bold">Setup Error:</span> {processingError}
+                                    </div>
+                                )}
                             </div>
                         )}
-                        {successMessage && !isProcessing && (
-                            <div className="alert alert-success">
-                                {successMessage}
-                            </div>
-                        )}
-                        {processingError && (
-                            <div className="alert alert-error">
-                                <span className="font-bold">Error:</span>
-                                <pre className="whitespace-pre-wrap">{processingError}</pre>
-                            </div>
-                        )}
+
                     </div>
                     <div className="modal-action">
                         <button type="button" className="btn btn-ghost" onClick={handleCloseBulkModal} disabled={isProcessing}>
-                            Cancel
+                            Close
                         </button>
                         <button
                             className="btn btn-primary"
                             onClick={handleBulkUpload}
-                            disabled={!selectedFile || isProcessing}
+                            disabled={!selectedFile || isProcessing || (uploadMode === 'individual' && isIndividualComplete)}
                         >
-                            {isProcessing ? 'Uploading...' : 'Upload'}
+                            {isProcessing ? 'Processing...' : uploadMode === 'batch' ? 'Upload Batch' : 'Start Upload'}
                         </button>
                     </div>
                 </div>
@@ -933,7 +1080,7 @@ export default function CouponManagementView() {
                 </form>
             </dialog>
 
-            {/* Export Excel Modal */}
+            {/* ... [Export Modal & Delete Modal remain exactly as is] ... */}
             <dialog id="export_excel_modal" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg">Export Coupons to Excel</h3>
@@ -987,14 +1134,13 @@ export default function CouponManagementView() {
                 </form>
             </dialog>
 
-            {/* QR Scanner Modal */}
             {isScannerOpen && (
                 <QRScannerModal
                     onClose={() => setIsScannerOpen(false)}
                     onScan={handleScanComplete}
                 />
             )}
-            {/* Delete Confirmation Modal */}
+
             <dialog id="delete_confirmation_modal_coupon" className="modal">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg text-error">Confirm Deletion</h3>
