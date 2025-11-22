@@ -29,78 +29,126 @@ const QRShareModal = ({ code, onClose }: { code: string | null, onClose: () => v
     }, [code]);
 
     const handleShare = async () => {
+        // Assuming 'code' and 'setIsSharing' are defined in your component scope
         if (!code) return;
         setIsSharing(true);
 
         try {
-            // 1. Get the SVG element
             const svg = document.getElementById("coupon-qr-code");
             if (!svg) throw new Error("QR Code element not found");
 
-            // 2. Create a Canvas
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
+            // Important: We need the SVG to render sharply at a larger size. 
+            // Ensure the SVG element itself doesn't have fixed small width/height attributes blocking scaling.
             const svgData = new XMLSerializer().serializeToString(svg);
             const img = new Image();
 
-            // --- CONFIGURATION ---
-            const canvasSize = 300; // Increased slightly for better resolution
-            const padding = 25;     // The amount of white space (padding) around the QR
-            // ---------------------
+            // --- QUALITY CONFIGURATION ---
+            // 1 = Standard (400x500), 2 = Retina (800x1000), 3 = High Res (1200x1500)
+            // A scale factor of 3 is generally excellent for mobile sharing.
+            const scaleFactor = 3;
 
-            canvas.width = canvasSize;
-            canvas.height = canvasSize;
+            // --- BASE DIMENSIONS ---
+            const baseWidth = 400;
+            const baseHeight = 500;
+            const baseQrSize = 280;
+            const baseQrY = 100;
+
+            // --- SCALED DIMENSIONS (The actual canvas size) ---
+            const canvasWidth = baseWidth * scaleFactor;
+            const canvasHeight = baseHeight * scaleFactor;
+            const qrSize = baseQrSize * scaleFactor;
+            const qrY = baseQrY * scaleFactor;
+
+            // Calculate center X based on scaled widths
+            const centerX = canvasWidth / 2;
+            const qrX = (canvasWidth - qrSize) / 2;
+
+            // Set the large canvas dimensions
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
 
             img.onload = async () => {
-                if (ctx) {
-                    // A. Draw the white background over the ENTIRE canvas
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(0, 0, canvasSize, canvasSize);
+                if (!ctx) return;
 
-                    // B. Draw the QR Code Image with padding
-                    // We start at (padding, padding)
-                    // We make the width/height smaller by (padding * 2) to fit inside
-                    ctx.drawImage(
-                        img,
-                        padding,
-                        padding,
-                        canvasSize - (padding * 2),
-                        canvasSize - (padding * 2)
-                    );
+                // A. Fill White Background
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-                    // 3. Convert canvas to blob
-                    canvas.toBlob(async (blob) => {
-                        if (!blob) return;
-                        const file = new File([blob], `coupon-${code}.png`, { type: "image/png" });
+                // B. Configure Text Settings (General)
+                ctx.textAlign = "center";
 
-                        // 4. Use Web Share API if available
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            try {
-                                await navigator.share({
-                                    title: 'Coupon QR Code',
-                                    text: `Here is your coupon code: ${code}`,
-                                    files: [file],
-                                });
-                            } catch (err) {
-                                console.log("Share cancelled or failed", err);
-                            }
-                        } else {
-                            // Fallback: Download
-                            const link = document.createElement('a');
-                            link.href = URL.createObjectURL(blob);
-                            link.download = `coupon-${code}.png`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            alert("Image downloaded (Sharing not supported on this browser).");
+                // --- Helper function for scaled fonts ---
+                const setFont = (size: number, weight = "bold") => {
+                    ctx.font = `${weight} ${size * scaleFactor}px sans-serif`;
+                };
+
+
+                // D. Draw Label (Top Grey Text)
+                ctx.fillStyle = "#666666";
+                setFont(16, "normal"); // Base size 16
+                // Y positions must also be scaled
+                ctx.fillText("✨🎊 Congratulations! 🎊✨", centerX, 28 * scaleFactor);
+
+                // C. Draw Header Text (Main Title)
+                ctx.fillStyle = "#000000";
+                setFont(32, "bold"); // Base size 32
+                ctx.fillText("Here is your coupon!", centerX, 65 * scaleFactor);
+
+                // OPTIONAL: If you want to show the actual code number below the title
+                // setFont(24, "bold");
+                // ctx.fillText(code, centerX, 95 * scaleFactor);
+
+
+                // E. Draw the QR Code Image (Scaled)
+                // Because the canvas is large, the SVG will render sharply here.
+                ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+
+
+                // F. Draw Footer Text
+                const footerStartY = qrY + qrSize;
+
+                ctx.fillStyle = "#000000";
+                setFont(18, "bold"); // Base size 18
+                ctx.fillText("Thanks for buying from", centerX, footerStartY + (40 * scaleFactor));
+
+                ctx.fillStyle = "#D32F2F"; // Red accent color
+                setFont(24, "bold"); // Increased base size slightly for better look
+                ctx.fillText("Jyeshtha Motors", centerX, footerStartY + (70 * scaleFactor));
+
+
+                // 3. Convert to Blob and Share
+                // Note: 'quality' argument (e.g., 0.9) does NOT work for PNGs. PNG is always lossless.
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+                    const file = new File([blob], `coupon-${code}.png`, { type: "image/png" });
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                title: 'Jyeshtha Motors Coupon',
+                                text: `Here is your coupon code: ${code}. Thanks for buying from Jyeshtha Motors!`,
+                                files: [file],
+                            });
+                        } catch (err) {
+                            console.log("Share cancelled", err);
                         }
-                        setIsSharing(false);
-                    }, "image/png");
-                }
+                    } else {
+                        // Fallback
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `coupon-${code}.png`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        alert("Image downloaded.");
+                    }
+                    setIsSharing(false);
+                }, "image/png");
             };
 
-            // Handle loading the SVG source
-            // Using encodeURIComponent is often safer than btoa for SVGs with special characters
+            // Use encodeURIComponent for better SVG compatibility
             img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgData);
 
         } catch (error) {
