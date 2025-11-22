@@ -1,6 +1,6 @@
 "use client";
-// --- MODIFIED: Added 'Building' icon ---
-import { Bell, Gift, QrCode, User, Building2 } from "lucide-react";
+// --- MODIFIED: Added 'Building' icon and 'Image/Upload' icons ---
+import { Bell, Gift, QrCode, User, Building2, Image as ImageIcon } from "lucide-react";
 import QRScannerModal from "./QRScannerModal";
 import RedeemRequestItem from "./tabs/RedeemRequestItem";
 import TransactionItem from "./tabs/TransactionItem";
@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCookie, setCookie } from "cookies-next";
 import pb from "@/lib/pocketbase";
 import useProfileStore from "@/stores/profile.store";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { RedeemRequest, Transaction } from "../types";
 import { useRouter } from "next/navigation";
 // --- NEW: Import the companies modal ---
@@ -37,6 +37,8 @@ export default function HomePage({
 }: HomePageProps) {
 
     const router = useRouter();
+    // --- NEW: File Input Reference ---
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { profile, updateProfile, removeProfile } = useProfileStore();
 
@@ -44,6 +46,7 @@ export default function HomePage({
     const [activeTab, setActiveTab] = useState('recent');
     // --- New state for custom scanner modal ---
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [isProcessingFile, setIsProcessingFile] = useState(false);
 
     // --- NEW: Get Query Client ---
     const queryClient = useQueryClient();
@@ -69,7 +72,7 @@ export default function HomePage({
                 console.error('Audio playback failed:', err);
             });
 
-            showAlert("🎉" + data.message || 'Code submitted successfully!');
+            showAlert("🎉 " + (data.message || 'Code submitted successfully!'));
 
             queryClient.invalidateQueries({
                 queryKey: ['userProfile', profile?.id],
@@ -101,6 +104,48 @@ export default function HomePage({
 
     const handleScanClick = () => {
         setIsScannerOpen(true);
+    };
+
+    // --- NEW: Handle File Upload for QR ---
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsProcessingFile(true);
+
+        try {
+            // Use the native BarcodeDetector API (Modern Browsers: Chrome, Edge, Android, macOS)
+            if ('BarcodeDetector' in window) {
+                // @ts-ignore - Typescript might not fully know BarcodeDetector yet depending on config
+                const barcodeDetector = new window.BarcodeDetector({
+                    formats: ['qr_code'],
+                });
+
+                const bitmap = await createImageBitmap(file);
+                const barcodes = await barcodeDetector.detect(bitmap);
+
+                if (barcodes.length > 0) {
+                    const code = barcodes[0].rawValue;
+                    scanCodeMutate(code);
+                } else {
+                    showAlert("No QR code found in this image.");
+                }
+            } else {
+                // Fallback or Alert for unsupported browsers (like older Firefox)
+                showAlert("Your browser doesn't support native image scanning. Please use the camera.");
+            }
+        } catch (err) {
+            console.error("File Scan Error", err);
+            showAlert("Failed to read QR from image.");
+        } finally {
+            setIsProcessingFile(false);
+            // Reset input so same file can be selected again if needed
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     // --- MODIFIED: Handle scan result ---
@@ -254,12 +299,12 @@ export default function HomePage({
                                             className="input input-bordered join-item w-full"
                                             value={manualCode}
                                             onChange={(e) => setManualCode(e.target.value)}
-                                            disabled={isScanning}
+                                            disabled={isScanning || isProcessingFile}
                                         />
                                         <button
                                             type="submit"
                                             className="btn btn-secondary join-item w-24"
-                                            disabled={isScanning}
+                                            disabled={isScanning || isProcessingFile}
                                         >
                                             {isScanning ? (
                                                 <span className="loading loading-spinner"></span>
@@ -273,12 +318,13 @@ export default function HomePage({
                         </div>
                     </div>
 
-                    {/* Scan Button (Main CTA) */}
-                    <div className="text-center my-6 grow">
+                    {/* Scan Buttons Container */}
+                    <div className="flex flex-col items-center gap-4 my-6 grow">
+                        {/* Main Camera Scan Button */}
                         <button
                             className="btn btn-accent btn-lg h-40 w-40 rounded-full shadow-lg flex-col gap-2"
                             onClick={handleScanClick}
-                            disabled={isScanning}
+                            disabled={isScanning || isProcessingFile}
                         >
                             {isScanning ? (
                                 <span className="loading loading-spinner loading-lg"></span>
@@ -289,6 +335,29 @@ export default function HomePage({
                                 </>
                             )}
                         </button>
+
+                        {/* --- NEW: Upload from File Button --- */}
+                        <div className="w-full flex justify-center">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                ref={fileInputRef}
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
+                            <button
+                                className="btn btn-outline btn-sm gap-2"
+                                onClick={handleUploadClick}
+                                disabled={isScanning || isProcessingFile}
+                            >
+                                {isProcessingFile ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    <ImageIcon size={16} />
+                                )}
+                                Upload QR from Gallery
+                            </button>
+                        </div>
                     </div>
 
                     {/* --- NEW: Top Users Widget Integrated Here --- */}
@@ -364,7 +433,6 @@ export default function HomePage({
                             )}
                         </div>
                     </div>
-
 
 
                 </div>
