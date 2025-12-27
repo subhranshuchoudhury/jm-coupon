@@ -53,6 +53,8 @@ export type User = {
     role: 'user' | 'admin' | string;
     avatar?: string;
     collectionId?: string; // Stored for image generation
+    created: string;
+    updated: string;
 };
 
 export type PocketBaseRedeemRequest = {

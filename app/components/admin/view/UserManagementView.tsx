@@ -198,6 +198,7 @@ export default function UserManagementView() {
                                         <th className="min-w-32 whitespace-nowrap">Phone</th>
                                         <th className="text-right min-w-36 whitespace-nowrap">Total Points</th>
                                         <th className="min-w-24 whitespace-nowrap">Role</th>
+                                        <th className="min-w-24 whitespace-nowrap">Created</th>
                                         <th className="text-center min-w-32">Actions</th>
                                     </tr>
                                 </thead>
@@ -254,6 +255,9 @@ export default function UserManagementView() {
                                                 <span className={`badge ${user.role === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>
                                                     {user.role}
                                                 </span>
+                                            </td>
+                                            <td className="whitespace-nowrap">
+                                                {new Date(user.created).toLocaleDateString()}
                                             </td>
                                             <td className="text-center">
                                                 <div className="join">

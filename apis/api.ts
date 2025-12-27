@@ -40,6 +40,8 @@ export const fetchUsers = async (
         avatar: item.avatar,
         collectionId: item.collectionId,
         phone: item.phone,
+        created: item.created,
+        updated: item.updated,
     }));
 
     return {
