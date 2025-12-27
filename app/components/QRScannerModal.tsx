@@ -34,6 +34,7 @@ export default function QRScannerModal({ onClose, onScan }: QRScannerModalProps)
                 <Scanner
                     onScan={handleScan}
                     onError={handleError}
+                    scanDelay={2000}
                     constraints={{
                         facingMode: 'environment', // Use rear camera (best for mobile scanning)
                     }}

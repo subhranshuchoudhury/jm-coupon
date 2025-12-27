@@ -68,10 +68,11 @@ export default function HomePage({
     const { mutate: scanCodeMutate, isPending: isScanning } = useMutation({
         mutationFn: scanCodeApi,
         onSuccess: (data) => {
-            const audio = new Audio('/success_sound.mp3');
-            audio.play().catch((err) => {
-                console.error('Audio playback failed:', err);
-            });
+
+            // const audio = new Audio('/success_sound.mp3');
+            // audio.play().catch((err) => {
+            //     console.error('Audio playback failed:', err);
+            // });
 
             showAlert("🎉 " + (data.message || 'Code submitted successfully!'));
 
@@ -87,10 +88,14 @@ export default function HomePage({
         },
         onError: (error: any) => {
             console.error('Scan API Error:', error);
-            const errorMessage =
+            let errorMessage =
                 error?.data?.message ||
                 error.message ||
                 'An unknown error occurred.';
+
+            // if (error.status === 409) {
+            //     errorMessage = "🎉 " + "Coupon has been successfully redeemed!"
+            // }
 
             showAlert(errorMessage);
         },
