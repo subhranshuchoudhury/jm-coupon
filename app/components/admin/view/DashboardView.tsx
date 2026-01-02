@@ -2,7 +2,7 @@
 import { fetchCompanies, fetchUsers } from "@/apis/api";
 import pb from "@/lib/pocketbase";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Gift, Ticket, Users, CheckCircle, Layers } from "lucide-react";
+import { Building2, Gift, Ticket, Users, CheckCircle, Layers, TrendingUp } from "lucide-react";
 // Import the new chart component and its type
 import type { RecordModel } from "pocketbase";
 import CompanyStatsChart, { StatItem } from "../../charts/DailyCompanyStatsChart";
@@ -106,6 +106,17 @@ export default function DashboardView() {
     const pieChartData: SellStatItem[] = companyStatsData ?? [];
     const lineChartData: DateStatItem[] = dateWiseCouponsSellStats ?? [];
 
+    // --- Calculate Today's Total Sold ---
+    let todaysTotalSold = 0;
+    if (chartData.length > 0) {
+        const mostRecentDate = chartData.reduce((max, item) =>
+            (item.date > max ? item.date : max),
+            chartData[0].date
+        );
+        const recentData = chartData.filter(item => item.date === mostRecentDate);
+        todaysTotalSold = recentData.reduce((sum, item) => sum + Number(item.total_sold || 0), 0);
+    }
+
 
     return (
         <div className="space-y-6">
@@ -136,19 +147,6 @@ export default function DashboardView() {
                     </div>
                 </div>
 
-                {/* Total Coupons card */}
-                <div className="stats shadow bg-base-100 border border-secondary/20">
-                    <div className="stat">
-                        <div className="stat-figure text-secondary">
-                            <Ticket size={32} />
-                        </div>
-                        <div className="stat-title">Total Coupons</div>
-                        <div className="stat-value">
-                            {isLoadingCouponStats ? <span className="loading loading-spinner loading-sm"></span> : (couponStats?.total_coupons ?? '...')}
-                        </div>
-                    </div>
-                </div>
-
                 {/* Available Coupons card */}
                 <div className="stats shadow bg-base-100 border border-accent/20">
                     <div className="stat">
@@ -172,6 +170,33 @@ export default function DashboardView() {
                         <div className="stat-value">
                             {isLoadingCouponStats ? <span className="loading loading-spinner loading-sm"></span> : (couponStats?.redeemed_coupons ?? '...')}
                         </div>
+                    </div>
+                </div>
+
+                {/* Total Coupons card */}
+                <div className="stats shadow bg-base-100 border border-secondary/20">
+                    <div className="stat">
+                        <div className="stat-figure text-secondary">
+                            <Ticket size={32} />
+                        </div>
+                        <div className="stat-title">Total Coupons</div>
+                        <div className="stat-value">
+                            {isLoadingCouponStats ? <span className="loading loading-spinner loading-sm"></span> : (couponStats?.total_coupons ?? '...')}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Today's Coupons Sold card */}
+                <div className="stats shadow bg-base-100 border border-emerald-500/20">
+                    <div className="stat">
+                        <div className="stat-figure text-emerald-500">
+                            <TrendingUp size={32} />
+                        </div>
+                        <div className="stat-title">Today's Sold</div>
+                        <div className="stat-value">
+                            {isLoadingStats ? <span className="loading loading-spinner loading-sm"></span> : todaysTotalSold}
+                        </div>
+                        <div className="stat-desc">Aggregated from daily stats</div>
                     </div>
                 </div>
 
