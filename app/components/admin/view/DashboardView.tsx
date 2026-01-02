@@ -2,7 +2,7 @@
 import { fetchCompanies, fetchUsers } from "@/apis/api";
 import pb from "@/lib/pocketbase";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Gift, Ticket, Users, CheckCircle, Layers, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, Gift, Ticket, Users, CheckCircle, Layers, TrendingUp, TrendingDown, Coins } from "lucide-react";
 // Import the new chart component and its type
 import type { RecordModel } from "pocketbase";
 import CompanyStatsChart, { StatItem } from "../../charts/DailyCompanyStatsChart";
@@ -162,6 +162,9 @@ export default function DashboardView() {
         }
     }
 
+    // --- Calculate Lifetime Points ---
+    const totalLifeTimePoints = pieChartData.reduce((sum, item) => sum + Number(item.total_points || 0), 0);
+
 
     return (
         <div className="space-y-6">
@@ -254,6 +257,19 @@ export default function DashboardView() {
                     </div>
                 </div>
 
+                {/* Lifetime Points card */}
+                <div className="stats shadow bg-base-100 border border-warning/20">
+                    <div className="stat">
+                        <div className="stat-figure text-warning">
+                            <Coins size={32} />
+                        </div>
+                        <div className="stat-title">Lifetime Points</div>
+                        <div className="stat-value">
+                            {isLoadingCompanyStats ? <span className="loading loading-spinner loading-sm"></span> : totalLifeTimePoints.toLocaleString()}
+                        </div>
+                        <div className="stat-desc">Total value distributed</div>
+                    </div>
+                </div>
 
                 {/* Total Companies card */}
                 <div className="stats shadow bg-base-100 border border-success/20">
