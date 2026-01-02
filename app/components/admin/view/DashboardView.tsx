@@ -1,8 +1,8 @@
 "use client";
-import { fetchCompanies, fetchCoupons, fetchUsers } from "@/apis/api";
+import { fetchCompanies, fetchUsers } from "@/apis/api";
 import pb from "@/lib/pocketbase";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Gift, Ticket, Users } from "lucide-react";
+import { Building2, Gift, Ticket, Users, CheckCircle, Layers } from "lucide-react";
 // Import the new chart component and its type
 import type { RecordModel } from "pocketbase";
 import CompanyStatsChart, { StatItem } from "../../charts/DailyCompanyStatsChart";
@@ -24,6 +24,12 @@ interface RedeemRequest extends RecordModel {
     // ... add other fields if you need them
 }
 
+interface CouponStats extends RecordModel {
+    total_coupons: number;
+    redeemed_coupons: number;
+    available_coupons: number;
+}
+
 export default function DashboardView() {
     // Fetch total users for the dashboard
     const { data: userData } = useQuery<PbListResult<any>>({
@@ -41,10 +47,18 @@ export default function DashboardView() {
         refetchOnMount: true
     });
 
-    // Fetch total coupons for the dashboard
-    const { data: couponData } = useQuery<PbListResult<any>>({
-        queryKey: ['coupons', 1],
-        queryFn: () => fetchCoupons(1),
+    // Fetch total coupons for the dashboard (Legacy/Alternative source)
+    // const { data: couponData } = useQuery<PbListResult<any>>({
+    //     queryKey: ['coupons', 1],
+    //     queryFn: () => fetchCoupons(1),
+    //     refetchInterval: 10000,
+    //     refetchOnMount: true
+    // });
+
+    // --- NEW: Fetch aggregated coupon stats ---
+    const { data: couponStats, isLoading: isLoadingCouponStats } = useQuery<CouponStats>({
+        queryKey: ['coupons_stats_dashboard'],
+        queryFn: () => pb.collection('coupons_stats_dashboard').getOne<CouponStats>('1'),
         refetchInterval: 10000,
         refetchOnMount: true
     });
@@ -85,7 +99,7 @@ export default function DashboardView() {
 
     const totalUsers = userData?.totalItems ?? '...';
     const pendingRequests = pendingRequestsData?.length ?? '...';
-    const totalCoupons = couponData?.totalItems ?? '...';
+    // const totalCoupons = couponData?.totalItems ?? '...'; // Old logic
     const totalCompanies = companiesData?.totalItems ?? '...';
 
     const chartData: StatItem[] = statsData ?? [];
@@ -129,9 +143,38 @@ export default function DashboardView() {
                             <Ticket size={32} />
                         </div>
                         <div className="stat-title">Total Coupons</div>
-                        <div className="stat-value">{totalCoupons}</div>
+                        <div className="stat-value">
+                            {isLoadingCouponStats ? <span className="loading loading-spinner loading-sm"></span> : (couponStats?.total_coupons ?? '...')}
+                        </div>
                     </div>
                 </div>
+
+                {/* Available Coupons card */}
+                <div className="stats shadow bg-base-100 border border-accent/20">
+                    <div className="stat">
+                        <div className="stat-figure text-accent">
+                            <Layers size={32} />
+                        </div>
+                        <div className="stat-title">Available Coupons</div>
+                        <div className="stat-value">
+                            {isLoadingCouponStats ? <span className="loading loading-spinner loading-sm"></span> : (couponStats?.available_coupons ?? '...')}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Redeemed Coupons card */}
+                <div className="stats shadow bg-base-100 border border-info/20">
+                    <div className="stat">
+                        <div className="stat-figure text-info">
+                            <CheckCircle size={32} />
+                        </div>
+                        <div className="stat-title">Redeemed Coupons</div>
+                        <div className="stat-value">
+                            {isLoadingCouponStats ? <span className="loading loading-spinner loading-sm"></span> : (couponStats?.redeemed_coupons ?? '...')}
+                        </div>
+                    </div>
+                </div>
+
 
                 {/* Total Companies card */}
                 <div className="stats shadow bg-base-100 border border-success/20">
