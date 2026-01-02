@@ -2,7 +2,7 @@
 import { fetchCompanies, fetchUsers } from "@/apis/api";
 import pb from "@/lib/pocketbase";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Gift, Ticket, Users, CheckCircle, Layers, TrendingUp } from "lucide-react";
+import { Building2, Gift, Ticket, Users, CheckCircle, Layers, TrendingUp, TrendingDown } from "lucide-react";
 // Import the new chart component and its type
 import type { RecordModel } from "pocketbase";
 import CompanyStatsChart, { StatItem } from "../../charts/DailyCompanyStatsChart";
@@ -106,15 +106,60 @@ export default function DashboardView() {
     const pieChartData: SellStatItem[] = companyStatsData ?? [];
     const lineChartData: DateStatItem[] = dateWiseCouponsSellStats ?? [];
 
-    // --- Calculate Today's Total Sold ---
+    // --- Calculate Today's Total Sold and Trend ---
     let todaysTotalSold = 0;
+    let yesterdaysTotalSold = 0;
+    let trendPercentage = 0;
+    let isTrendingUp = true;
+    let isTrendNeutral = true;
+
     if (chartData.length > 0) {
+        // 1. Calculate Today's Sold from 'dailyCompanyStats' (chartData)
+        //    Find the max date in that dataset
         const mostRecentDate = chartData.reduce((max, item) =>
             (item.date > max ? item.date : max),
             chartData[0].date
         );
         const recentData = chartData.filter(item => item.date === mostRecentDate);
         todaysTotalSold = recentData.reduce((sum, item) => sum + Number(item.total_sold || 0), 0);
+
+        // 2. Calculate Yesterday's Sold from 'dateWiseCouponsSellStats' (lineChartData)
+        //    This gives us the historical context per day.
+        if (lineChartData.length > 0) {
+            // Sort by date just to be sure
+            const sortedHistory = [...lineChartData]
+                .filter(item => item.date !== null && item.date !== '')
+                .sort((a, b) => a.date!.localeCompare(b.date!));
+
+            // Find the entry for 'mostRecentDate' or the day before
+            const todayIndex = sortedHistory.findIndex(item => item.date === mostRecentDate);
+
+            if (todayIndex > 0) {
+                // If today is found and there is a previous day
+                const prevDayItem = sortedHistory[todayIndex - 1];
+                yesterdaysTotalSold = Number(prevDayItem.total_coupons_sold || 0);
+            } else if (todayIndex === -1 && sortedHistory.length > 0) {
+                // If today is NOT in the history list yet (unlikely if they sync, but possible),
+                // maybe the last item in history is yesterday?
+                // For safety, let's assume if we can't match dates, we might skip trend or use last available.
+                // But typically, 'dateWiseCouponsSellStats' should contain today's entry too if updated.
+                // Let's rely on finding todayIndex.
+
+                // Fallback: If today's index is 0, we have no previous data in this list.
+            }
+
+            if (yesterdaysTotalSold > 0) {
+                const diff = todaysTotalSold - yesterdaysTotalSold;
+                trendPercentage = (Math.abs(diff) / yesterdaysTotalSold) * 100;
+                isTrendingUp = diff >= 0;
+                isTrendNeutral = diff === 0;
+            } else if (todaysTotalSold > 0) {
+                // Yesterday was 0, Today is > 0 -> 100% increase (technically infinite, but treated as new growth)
+                trendPercentage = 100;
+                isTrendingUp = true;
+                isTrendNeutral = false;
+            }
+        }
     }
 
 
@@ -187,16 +232,25 @@ export default function DashboardView() {
                 </div>
 
                 {/* Today's Coupons Sold card */}
-                <div className="stats shadow bg-base-100 border border-emerald-500/20">
+                <div className={`stats shadow bg-base-100 border ${isTrendingUp ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
                     <div className="stat">
-                        <div className="stat-figure text-emerald-500">
-                            <TrendingUp size={32} />
+                        <div className={`stat-figure ${isTrendingUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {isTrendingUp ? <TrendingUp size={32} /> : <TrendingDown size={32} />}
                         </div>
                         <div className="stat-title">Today's Sold</div>
                         <div className="stat-value">
                             {isLoadingStats ? <span className="loading loading-spinner loading-sm"></span> : todaysTotalSold}
                         </div>
-                        <div className="stat-desc">Aggregated from daily stats</div>
+                        <div className={`stat-desc flex items-center gap-1 ${isTrendingUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {isTrendNeutral ? (
+                                <span>Same as yesterday</span>
+                            ) : (
+                                <>
+                                    <span>{trendPercentage.toFixed(1)}%</span>
+                                    <span>{isTrendingUp ? 'more' : 'less'} than yesterday</span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 

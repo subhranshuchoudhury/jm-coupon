@@ -16,7 +16,7 @@ export interface DateStatItem {
     id: string;
     collectionId: string;
     collectionName: string;
-    date: string | null; // API can send null for date
+    date: string | null; // API can send null for date format: YYYY-MM-DD
     total_coupons_sold: number | string;
     total_points: number | string;
 }
