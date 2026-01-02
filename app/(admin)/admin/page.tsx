@@ -283,13 +283,13 @@ function Admin() {
                                 Companies
                             </a>
                         </li>
-                        <li>
+                        {/* <li>
                             <a onClick={() => handleSetView('scan')} className={activeView === 'scan' ? 'active font-semibold' : ''}>
                                 <QrCode size={18} />
                                 Assign Coupons
                             </a>
-                        </li>
-                        <li className='text-base-content/20 hover:text-base-content'>
+                        </li> */}
+                        <li>
                             <a
                                 href={`${process.env.NEXT_PUBLIC_POCKETBASE_URL}/_`}
                                 target="_blank"

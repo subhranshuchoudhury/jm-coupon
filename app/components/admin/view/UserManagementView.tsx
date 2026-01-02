@@ -7,6 +7,7 @@ import { useState } from "react";
 import Pagination from "../../Pagination";
 import UserAvatar from "../UserAvatar";
 import useDebounce from "@/hooks/useDebounce"; // Assuming this is correctly implemented
+import { formatDate } from "@/utils";
 
 // Define Search Fields
 type SearchField = 'name' | 'id' | 'email' | 'phone';
@@ -199,6 +200,7 @@ export default function UserManagementView() {
                                         <th className="text-right min-w-36 whitespace-nowrap">Total Points</th>
                                         <th className="min-w-24 whitespace-nowrap">Role</th>
                                         <th className="min-w-24 whitespace-nowrap">Created</th>
+                                        <th className="min-w-24 whitespace-nowrap">Updated</th>
                                         <th className="text-center min-w-32">Actions</th>
                                     </tr>
                                 </thead>
@@ -257,7 +259,10 @@ export default function UserManagementView() {
                                                 </span>
                                             </td>
                                             <td className="whitespace-nowrap">
-                                                {new Date(user.created).toLocaleDateString()}
+                                                {user.created && formatDate(user.created)}
+                                            </td>
+                                            <td className="whitespace-nowrap">
+                                                {user.updated && formatDate(user.updated)}
                                             </td>
                                             <td className="text-center">
                                                 <div className="join">
