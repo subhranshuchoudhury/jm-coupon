@@ -300,6 +300,20 @@ export default function CouponManagementView() {
         handleCreateNew(result.trim());
     }
 
+    const handleSaveImportedCoupons = async (coupons: Array<{ code: string; company: string; mrp: number; points: number }>) => {
+        const results = await Promise.allSettled(coupons.map((coupon) => createOrUpdateCoupon({
+            id: "new",
+            data: coupon,
+        })));
+        const failedCount = results.filter((result) => result.status === "rejected").length;
+
+        if (failedCount) {
+            throw new Error(`${failedCount} of ${coupons.length} coupon${failedCount === 1 ? "" : "s"} could not be saved. Check that each QR code is unique.`);
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ["coupons"] });
+    };
+
     const calculatePoints = (mrpVal: string | number, companyId: string) => {
         if (!companyId || !mrpVal) return;
 
@@ -1138,6 +1152,9 @@ export default function CouponManagementView() {
                 <QRScannerModal
                     onClose={() => setIsScannerOpen(false)}
                     onScan={handleScanComplete}
+                    onSaveAll={handleSaveImportedCoupons}
+                    companies={companies}
+                    enableCouponDetails
                 />
             )}
 

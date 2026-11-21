@@ -1,6 +1,6 @@
 "use client";
 // --- MODIFIED: Added 'Building' icon and 'Image/Upload' icons ---
-import { Bell, Gift, QrCode, User, Building2, Image as ImageIcon, Headset } from "lucide-react";
+import { Bell, Gift, QrCode, User, Building2, Headset } from "lucide-react";
 import QRScannerModal from "./QRScannerModal";
 import RedeemRequestItem from "./tabs/RedeemRequestItem";
 import TransactionItem from "./tabs/TransactionItem";
@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteCookie, setCookie } from "cookies-next";
 import pb from "@/lib/pocketbase";
 import useProfileStore from "@/stores/profile.store";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { RedeemRequest, Transaction } from "../types";
 import { useRouter } from "next/navigation";
 // --- NEW: Import the companies modal ---
@@ -38,8 +38,6 @@ export default function HomePage({
 }: HomePageProps) {
 
     const router = useRouter();
-    // --- NEW: File Input Reference ---
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { profile, updateProfile, removeProfile } = useProfileStore();
 
@@ -47,7 +45,6 @@ export default function HomePage({
     const [activeTab, setActiveTab] = useState('recent');
     // --- New state for custom scanner modal ---
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    const [isProcessingFile, setIsProcessingFile] = useState(false);
 
     // --- NEW: Get Query Client ---
     const queryClient = useQueryClient();
@@ -112,53 +109,39 @@ export default function HomePage({
         setIsScannerOpen(true);
     };
 
-    // --- NEW: Handle File Upload for QR ---
-    const handleUploadClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsProcessingFile(true);
-
-        try {
-            // Use the native BarcodeDetector API (Modern Browsers: Chrome, Edge, Android, macOS)
-            if ('BarcodeDetector' in window) {
-                // @ts-ignore - Typescript might not fully know BarcodeDetector yet depending on config
-                const barcodeDetector = new window.BarcodeDetector({
-                    formats: ['qr_code'],
-                });
-
-                const bitmap = await createImageBitmap(file);
-                const barcodes = await barcodeDetector.detect(bitmap);
-
-                if (barcodes.length > 0) {
-                    const code = barcodes[0].rawValue;
-                    scanCodeMutate(code);
-                } else {
-                    showAlert("No QR code found in this image.");
-                }
-            } else {
-                // Fallback or Alert for unsupported browsers (like older Firefox)
-                showAlert("Your browser doesn't support native image scanning. Please use the camera.");
-            }
-        } catch (err) {
-            console.error("File Scan Error", err);
-            showAlert("Failed to read QR from image.");
-        } finally {
-            setIsProcessingFile(false);
-            // Reset input so same file can be selected again if needed
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
-    // --- MODIFIED: Handle scan result ---
     const handleScanResult = (result: string) => {
         setIsScannerOpen(false);
         if (isScanning) return;
         scanCodeMutate(result);
+    };
+
+    const handleSaveAllScans = async (codes: string[]) => {
+        const failures: unknown[] = [];
+        let savedCount = 0;
+
+        for (const code of codes) {
+            try {
+                await scanCodeApi(code);
+                savedCount += 1;
+            } catch (error) {
+                console.error("QR Scan API Error:", error);
+                failures.push(error);
+            }
+        }
+
+        if (savedCount) {
+            queryClient.invalidateQueries({ queryKey: ["userProfile", profile?.id] });
+            queryClient.invalidateQueries({ queryKey: ["transactions", profile?.id] });
+        }
+
+        if (failures.length) {
+            const firstError = failures[0] as { data?: { message?: string }; message?: string };
+            const message = firstError?.data?.message || firstError?.message || "Some QR codes could not be saved.";
+            showAlert(`${savedCount} of ${codes.length} QR codes saved. ${message}`);
+            return;
+        }
+
+        showAlert(`${savedCount} QR code${savedCount === 1 ? "" : "s"} saved successfully!`);
     };
 
     const fetchProfileRefresh = async () => {
@@ -320,12 +303,12 @@ export default function HomePage({
                                             className="input input-bordered join-item w-full"
                                             value={manualCode}
                                             onChange={(e) => setManualCode(e.target.value)}
-                                            disabled={isScanning || isProcessingFile}
+                                            disabled={isScanning}
                                         />
                                         <button
                                             type="submit"
                                             className="btn btn-secondary join-item w-24"
-                                            disabled={isScanning || isProcessingFile}
+                                            disabled={isScanning}
                                         >
                                             {isScanning ? (
                                                 <span className="loading loading-spinner"></span>
@@ -345,7 +328,7 @@ export default function HomePage({
                         <button
                             className="btn btn-accent btn-lg h-40 w-40 rounded-full shadow-lg flex-col gap-2"
                             onClick={handleScanClick}
-                            disabled={isScanning || isProcessingFile}
+                            disabled={isScanning}
                         >
                             {isScanning ? (
                                 <span className="loading loading-spinner loading-lg"></span>
@@ -357,28 +340,9 @@ export default function HomePage({
                             )}
                         </button>
 
-                        {/* --- NEW: Upload from File Button --- */}
-                        <div className="w-full flex justify-center">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                ref={fileInputRef}
-                                className="hidden"
-                                onChange={handleFileChange}
-                            />
-                            <button
-                                className="btn btn-outline btn-sm gap-2"
-                                onClick={handleUploadClick}
-                                disabled={isScanning || isProcessingFile}
-                            >
-                                {isProcessingFile ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                ) : (
-                                    <ImageIcon size={16} />
-                                )}
-                                Upload QR from Gallery
-                            </button>
-                        </div>
+                        <p className="text-center text-sm text-base-content/70">
+                            Select <strong>Choose QR codes from gallery</strong> in the scanner to import multiple QR codes.
+                        </p>
                     </div>
 
                     {/* --- NEW: Top Users Widget Integrated Here --- */}
@@ -464,6 +428,7 @@ export default function HomePage({
                 <QRScannerModal
                     onClose={() => setIsScannerOpen(false)}
                     onScan={handleScanResult}
+                    onSaveAll={(codes) => handleSaveAllScans(codes.map((item) => item.code))}
                 />
             )}
 
