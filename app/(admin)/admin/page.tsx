@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { Suspense, useState, useMemo, useEffect } from 'react';
 import {
     LayoutDashboard,
     Users,
@@ -13,6 +13,7 @@ import {
     DatabaseZap
 } from 'lucide-react';
 import {
+    useIsRestoring,
     useQuery
 } from '@tanstack/react-query';
 
@@ -26,7 +27,7 @@ import ScanCouponView from '@/app/components/admin/view/ScanCouponView';
 import CouponManagementView from '@/app/components/admin/view/CouponManagementView';
 import RedeemRequestView from '@/app/components/admin/view/RedeemRequestView';
 import { deleteCookie, setCookie } from 'cookies-next';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CompanyManagementView from '@/app/components/admin/view/CompanyManagementView';
 
 
@@ -116,15 +117,23 @@ function AdminHeader({ activeView, viewTitles, toggleDrawer }: { activeView: Adm
 /**
  * Main Admin Panel Component
  */
+const adminViews: AdminView[] = ['dashboard', 'users', 'redeem', 'coupons', 'scan', 'companies'];
+
 function Admin() {
 
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { profile, updateProfile, removeProfile } = useProfileStore();
-    const [activeView, setActiveView] = useState<AdminView>('dashboard');
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [isClientReady, setIsClientReady] = useState(false);
+    const isRestoringQueryCache = useIsRestoring();
+    const requestedView = searchParams.get('view');
+    const activeView: AdminView = adminViews.includes(requestedView as AdminView)
+        ? requestedView as AdminView
+        : 'dashboard';
 
     const handleSetView = (view: AdminView) => {
-        setActiveView(view);
+        router.push(view === 'dashboard' ? '/admin' : `/admin?view=${view}`);
         setIsDrawerOpen(false); // Close drawer on mobile after selection
     };
 
@@ -216,6 +225,9 @@ function Admin() {
         })();
     }, [isError, error]);
 
+    useEffect(() => {
+        setIsClientReady(true);
+    }, []);
 
     return (
         <div className="drawer lg:drawer-open min-h-screen bg-base-200">
@@ -235,7 +247,11 @@ function Admin() {
 
                 {/* Main Content Area */}
                 <main className="flex-1 p-4 lg:p-8">
-                    {renderView()}
+                    {isClientReady && !isRestoringQueryCache ? renderView() : (
+                        <div className="flex min-h-64 items-center justify-center">
+                            <span className="loading loading-spinner loading-lg" aria-label="Loading admin data" />
+                        </div>
+                    )}
                 </main>
             </div>
 
@@ -349,4 +365,10 @@ function RedeemRequestsMenuItem({ handleSetView, activeView }: { handleSetView: 
 }
 
 
-export default Admin;
+export default function AdminPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-base-200" />}>
+            <Admin />
+        </Suspense>
+    );
+}
