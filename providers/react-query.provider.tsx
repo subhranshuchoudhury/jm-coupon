@@ -35,8 +35,10 @@ export default function ReactQueryProvider({
             persistOptions={{
                 persister,
                 maxAge: 1000 * 60 * 1, // Persist cache for 1 Minute
-            }
-            }
+                dehydrateOptions: {
+                    shouldDehydrateQuery: (query) => query.state.status === 'success',
+                },
+            }}
         >
             {children}
             < ReactQueryDevtools initialIsOpen />

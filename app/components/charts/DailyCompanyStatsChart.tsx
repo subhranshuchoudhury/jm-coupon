@@ -101,8 +101,8 @@ const CompanyStatsChart: FC<CompanyStatsChartProps> = ({ data }) => {
                 </h3>
             )}
 
-            <div style={{ width: '100%', height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+            <div className="min-w-0" style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
                     <BarChart
                         data={processedData}
                         margin={{
